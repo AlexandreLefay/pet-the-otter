@@ -11,6 +11,11 @@ npm run build          # build classique dans dist/
 npm run build:single   # un seul fichier HTML autonome dans dist/
 ```
 
+## En ligne
+
+https://alexandrelefay.github.io/pet-the-otter/ — redéployé automatiquement à chaque push sur `main`
+(workflow `.github/workflows/deploy.yml`).
+
 ## Où est quoi
 
 - `src/game/data.ts` — contenu : améliorations, succès, phrases absurdes (c'est ici qu'on équilibre)

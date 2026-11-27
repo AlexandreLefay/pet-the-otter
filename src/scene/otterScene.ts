@@ -27,7 +27,7 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
   el.appendChild(renderer.domElement)
 
   const scene = new THREE.Scene()
-  const FR = 7.2
+  const FR = 8.6
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200)
   cam.position.set(12, 10.5, 12)
   cam.lookAt(0, 0, 0)

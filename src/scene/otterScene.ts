@@ -2,6 +2,7 @@
 // createOtterScene(el, { onPet }) → { dispose() }
 // Le conteneur doit avoir une taille ; le canvas le remplit et suit ses redimensionnements.
 import * as THREE from 'three'
+import { OTTER_HOVER_ATTR } from './handCursor'
 
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
@@ -280,14 +281,17 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
   const onMove = (e: PointerEvent) => {
     const over = hits(e)
     el.style.cursor = over ? (dragging ? 'grabbing' : 'grab') : 'default'
+    document.documentElement.toggleAttribute(OTTER_HOVER_ATTR, over)
     if (!dragging || !over) return
     if (performance.now() - lastPet < PET_THROTTLE_MS) return
     pet(e, false)
     if (Math.random() < 0.35) ripple(false)
   }
   const onUp = () => { dragging = false }
+  const onLeave = () => document.documentElement.removeAttribute(OTTER_HOVER_ATTR)
   el.addEventListener('pointerdown', onDown)
   el.addEventListener('pointermove', onMove)
+  el.addEventListener('pointerleave', onLeave)
   window.addEventListener('pointerup', onUp)
   window.addEventListener('pointercancel', onUp)
 
@@ -350,6 +354,8 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
       ro.disconnect()
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerleave', onLeave)
+      onLeave()
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
       scene.traverse(o => {

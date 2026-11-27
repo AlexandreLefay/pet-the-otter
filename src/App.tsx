@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { startGameLoops, useGame } from './game/store'
 import { BoilFilters } from './components/Boil'
 import { SceneView } from './components/SceneView'
+import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, Toast } from './components/Hud'
 import { Achievements, Shop, Tabs, type TabId } from './components/Panels'
 
@@ -33,6 +34,7 @@ export default function App() {
       )}
       <Toast />
       <Gains />
+      <HandCursor />
     </div>
   )
 }

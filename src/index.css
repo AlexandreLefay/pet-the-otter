@@ -33,7 +33,9 @@ button { font: inherit; color: inherit; }
 .scene { position: absolute; inset: 0; filter: var(--boil); touch-action: none; }
 
 /* ——— Zones d'interface (flottent, sans cadres) */
-.logo { position: absolute; left: 48px; top: 44px; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.logo { position: absolute; left: 40px; top: 36px; display: flex; align-items: center; gap: 12px; pointer-events: none; }
+.logo__mark { flex: none; }
+.logo__text { display: flex; flex-direction: column; gap: 4px; }
 .logo__title { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
 .logo__sub { color: var(--graphite); }
 
@@ -95,6 +97,10 @@ button { font: inherit; color: inherit; }
   100% { opacity: 0; transform: translate(-50%, calc(-50% - 70px)) rotate(var(--r)); }
 }
 
+/* ——— Curseur main 3D (souris uniquement, cf. scene/handCursor.ts) */
+.has-hand-cursor, .has-hand-cursor * { cursor: none !important; }
+.hand-cursor { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 150ms; filter: var(--boil); will-change: transform; }
+
 /* ——— Lien « recommencer » */
 .link { position: absolute; left: 48px; bottom: 44px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 .link:hover { color: var(--ink); }
@@ -107,7 +113,8 @@ button { font: inherit; color: inherit; }
 
 /* ——— Mobile : boutique en bas, onglets en ligne */
 @media (max-width: 820px) {
-  .logo { left: 20px; top: 20px; }
+  .logo { left: 16px; top: 14px; gap: 8px; }
+  .logo__mark { width: 36px; height: 36px; }
   .logo__title { font-size: 18px; }
   .logo__sub { display: none; }
   .counter { top: 56px; }

@@ -60,7 +60,7 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
     sh.vertexShader = 'uniform float th;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * th;')
   }
   const black = new THREE.MeshBasicMaterial({ color: INK })
-  const white = toon(0xffffff), fur = toon(0xf7f5f0), stone = toon(0xf4f2ee)
+  const stone = toon(0xf4f2ee)
 
   // ——— lumières + sol (ombre seule)
   scene.add(new THREE.AmbientLight(0xffffff, 1.15))
@@ -158,15 +158,11 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
     addPeb(i % 5, stoneTones[i % 3], scene, [x, 0.04 * sc, z], [0, rp() * 6, 0], [1.35 * sc, 0.5 * sc, (0.9 + rp() * 0.4) * sc])
   })
 
-  // ——— la loutre
-  const otter = new THREE.Group()
-  scene.add(otter)
-  const body = new THREE.Group()
-  body.position.y = 0.14
-  body.rotation.z = 0.07
-  otter.add(body)
+  // ——— loutre de mer : sur le dos, tête claire, pattes sur la poitrine, pieds hors de l'eau.
+  // Modèle réutilisable (la mère, et plus tard les amies et le cousin).
+  const furDark = toon(0x99948c), pale = toon(0xfcf9f2), pawMat = toon(0x75716a)
   const prof = new THREE.SplineCurve(
-    [[0, -0.78], [0.22, -0.74], [0.34, -0.6], [0.4, -0.35], [0.44, -0.05], [0.43, 0.22], [0.39, 0.45], [0.31, 0.64], [0.17, 0.76], [0, 0.8]].map(([x, y]) => new THREE.Vector2(x, y)),
+    [[0, -0.8], [0.22, -0.76], [0.35, -0.6], [0.42, -0.35], [0.46, -0.05], [0.45, 0.22], [0.4, 0.45], [0.31, 0.64], [0.17, 0.76], [0, 0.8]].map(([x, y]) => new THREE.Vector2(x, y)),
   ).getPoints(40)
   prof[0].x = 0
   prof[prof.length - 1].x = 0
@@ -178,34 +174,18 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
     tp.setXYZ(i, x * k, y, z * k * 0.92)
   }
   torsoGeo.computeVertexNormals()
-  add(torsoGeo, fur, body, [0, 0.05, 0], [0, 0, -Math.PI / 2])
-  add(new THREE.CapsuleGeometry(0.42, 0.8, 6, 24), black, body, [0, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 0.95], false)
-  add(new THREE.CapsuleGeometry(0.15, 0.7, 6, 16), fur, body, [-1.2, -0.06, 0], [0, 0, Math.PI / 2 + 0.1], [0.45, 1, 1.15])
-  add(new THREE.CapsuleGeometry(0.22, 0.72, 6, 16), black, body, [-1.2, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 1], false)
-  ;[-1, 1].forEach(sd => {
-    add(new THREE.CapsuleGeometry(0.065, 0.14, 6, 12), fur, body, [-0.6, 0.36, sd * 0.16], [sd * 0.1, 0, 0.6])
-    add(new THREE.SphereGeometry(0.13, 16, 12), fur, body, [-0.7, 0.5, sd * 0.17], [sd * 0.2, 0, 0.9 + sd * 0.1], [0.35, 1, 1.05])
-    add(new THREE.CapsuleGeometry(0.055, 0.18, 6, 12), fur, body, [0.58, 0.44, sd * 0.15], [sd * 0.5, 0, 1.0])
-    add(new THREE.SphereGeometry(0.065, 14, 10), fur, body, [0.47, 0.53, sd * 0.08], null, [1, 0.8, 1])
-  })
-  addPeb(2, stoneTones[1], body, [0.46, 0.6, 0], [0, 0.4, 0], [0.85, 0.45, 0.7])
-
-  const head = new THREE.Group()
-  head.position.set(0.98, 0.4, 0)
-  body.add(head)
-  add(new THREE.SphereGeometry(0.37, 28, 20), white, head, [0, 0, 0], null, [1.06, 0.95, 0.95])
-  ;[-1, 1].forEach(sd => add(new THREE.SphereGeometry(0.13, 20, 14), white, head, [sd * 0.085, -0.09, 0.29], null, [1, 0.85, 0.8]))
-  add(new THREE.SphereGeometry(0.07, 12, 8), black, head, [0, -0.01, 0.41], null, [1.35, 0.75, 0.7], false)
-  const smile = new THREE.TorusGeometry(0.04, 0.007, 4, 10, Math.PI)
-  ;[-1, 1].forEach(sd => {
-    add(new THREE.SphereGeometry(0.075, 12, 10), white, head, [sd * 0.29, 0.25, -0.02], null, [1, 1, 0.6])
-    add(smile, black, head, [sd * 0.15, 0.08, 0.33], [0, 0, 0], [1.1, 0.8, 1], false)
-    add(smile, black, head, [sd * 0.04, -0.16, 0.3], [0, 0, Math.PI], null, false)
-    ;[0.03, -0.03].forEach(dy => {
-      const w = add(new THREE.CylinderGeometry(0.004, 0.004, 0.36, 4), black, head, [sd * 0.32, -0.1 + dy, 0.26], null, null, false)
-      w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(sd, dy * 4 - 0.05, 0.25).normalize())
-    })
-  })
+  const waterlineGeo = new THREE.CapsuleGeometry(0.44, 0.8, 6, 24)
+  const tailGeo = new THREE.CapsuleGeometry(0.15, 0.62, 6, 16)
+  const footGeo = new THREE.SphereGeometry(0.15, 16, 12)
+  const toeGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.16, 4)
+  const pawGeo = new THREE.SphereGeometry(0.085, 14, 10)
+  const armGeo = new THREE.CapsuleGeometry(0.07, 0.16, 6, 12)
+  const headGeo = new THREE.SphereGeometry(0.37, 28, 20)
+  const muzzleGeo = new THREE.SphereGeometry(0.13, 20, 14)
+  const earGeo = new THREE.SphereGeometry(0.07, 12, 10)
+  const noseGeo = new THREE.SphereGeometry(0.075, 14, 10)
+  const arc = new THREE.TorusGeometry(0.045, 0.008, 4, 12, Math.PI)
+  const whiskerGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.36, 4)
 
   // fourrure : petits « U » à l'encre
   const arcGeo = new THREE.TorusGeometry(0.045, 0.006, 4, 10, Math.PI)
@@ -216,22 +196,109 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
     m.rotateZ(rotZ)
     parent.add(m)
   }
-  const rnd = seeded(7)
-  for (let i = 0; i < 26; i++) {
-    const u = -0.62 + rnd() * 1.25, th = (rnd() - 0.5) * 2.2
-    const r = 0.43 - Math.abs(u) * 0.12
-    const n = new THREE.Vector3(0, Math.cos(th), Math.sin(th) * 0.92).normalize()
-    const p = new THREE.Vector3(u, 0.05 + Math.cos(th) * r + 0.005, Math.sin(th) * r * 0.92)
-    if (p.y < 0.12) continue
-    tuft(body, p, n, Math.PI + (rnd() - 0.5) * 0.8)
+
+  /** Tête de loutre (face vers +z) : claire, oreilles rondes, yeux fermés, grosse truffe. */
+  const makeHead = (parent: THREE.Object3D, mat: THREE.Material, seed: number) => {
+    const head = new THREE.Group()
+    parent.add(head)
+    add(headGeo, mat, head, [0, 0, 0], null, [1.06, 0.95, 0.95])
+    ;[-1, 1].forEach(sd => {
+      add(muzzleGeo, mat, head, [sd * 0.085, -0.1, 0.29], null, [1, 0.85, 0.8])
+      add(earGeo, pawMat, head, [sd * 0.31, 0.22, -0.04], null, [1, 1, 0.6])
+      // yeux fermés, paisibles : deux petits « ‿ »
+      add(arc, black, head, [sd * 0.14, 0.07, 0.335], [0, 0, Math.PI], [1.15, 0.7, 1], false)
+      add(arc, black, head, [sd * 0.04, -0.19, 0.3], [0, 0, Math.PI], [0.8, 0.8, 1], false)
+      ;[0.03, -0.03].forEach(dy => {
+        const w = add(whiskerGeo, black, head, [sd * 0.32, -0.11 + dy, 0.26], null, null, false)
+        w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(sd, dy * 4 - 0.05, 0.25).normalize())
+      })
+    })
+    add(noseGeo, black, head, [0, -0.02, 0.405], null, [1.45, 0.85, 0.7], false)
+    const rnd = seeded(seed + 3)
+    for (let i = 0; i < 10; i++) {
+      const th = rnd() * Math.PI * 2, ph = rnd() * 1.4
+      const n = new THREE.Vector3(Math.cos(th) * Math.sin(ph), Math.cos(ph), Math.sin(th) * Math.sin(ph))
+      if (n.z > 0.3) continue
+      tuft(head, n.clone().multiplyScalar(0.36), n, Math.PI + (rnd() - 0.5))
+    }
+    return head
   }
-  for (let i = 0; i < 12; i++) {
-    const th = rnd() * Math.PI * 2, ph = rnd() * 1.4
-    const n = new THREE.Vector3(Math.cos(th) * Math.sin(ph), Math.cos(ph), Math.sin(th) * Math.sin(ph))
-    if (n.z > 0.35) continue
-    tuft(head, n.clone().multiplyScalar(0.36), n, Math.PI + (rnd() - 0.5))
+
+  interface OtterRig {
+    root: THREE.Group
+    body: THREE.Group
+    head: THREE.Group
+    /** pattes avant (pour bercer le bébé, tenir un galet…) */
+    paws: THREE.Object3D[]
+    /** point d'appui sur la poitrine (le bébé, le galet) */
+    chest: THREE.Group
   }
-  for (let i = 0; i < 5; i++) tuft(body, new THREE.Vector3(-0.95 - i * 0.12, 0.02, (rnd() - 0.5) * 0.1), new THREE.Vector3(0, 1, 0), Math.PI)
+  const makeOtter = (seed: number, fur: THREE.Material = furDark): OtterRig => {
+    const root = new THREE.Group()
+    const body = new THREE.Group()
+    body.position.y = 0.14
+    body.rotation.z = 0.07
+    root.add(body)
+    add(torsoGeo, fur, body, [0, 0.05, 0], [0, 0, -Math.PI / 2])
+    add(waterlineGeo, black, body, [0, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 0.95], false)
+    // plastron clair : le cou et le haut de la poitrine, comme la tête
+    add(new THREE.SphereGeometry(0.33, 22, 16), pale, body, [0.7, 0.18, 0], null, [0.95, 0.75, 0.9])
+    // queue plate
+    add(tailGeo, fur, body, [-1.15, -0.04, 0], [0, 0, Math.PI / 2 + 0.12], [0.42, 1, 1.15])
+    add(new THREE.CapsuleGeometry(0.2, 0.62, 6, 16), black, body, [-1.15, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 1], false)
+    // pieds palmés dressés hors de l'eau
+    ;[-1, 1].forEach(sd => {
+      const foot = new THREE.Group()
+      foot.position.set(-0.7, 0.36, sd * 0.2)
+      foot.rotation.set(sd * 0.45, 0, 1.05)
+      body.add(foot)
+      add(footGeo, pawMat, foot, [0, 0.08, 0], null, [0.36, 0.95, 1.35])
+      ;[-0.07, 0, 0.07].forEach(z => {
+        const t = new THREE.Mesh(toeGeo, black)
+        t.position.set(0.056, 0.12, z * 1.25)
+        t.rotation.x = z * 2
+        foot.add(t)
+      })
+    })
+    // pattes avant repliées sur la poitrine
+    const paws: THREE.Object3D[] = []
+    ;[-1, 1].forEach(sd => {
+      const arm = new THREE.Group()
+      arm.position.set(0.42, 0.4, sd * 0.22)
+      arm.rotation.set(sd * 0.9, 0, 1.25)
+      body.add(arm)
+      add(armGeo, pawMat, arm, [0, 0.1, 0])
+      add(pawGeo, pawMat, arm, [0, 0.22, -sd * 0.02], null, [1, 0.8, 1.1])
+      paws.push(arm)
+    })
+    const chest = new THREE.Group()
+    chest.position.set(0.18, 0.5, 0)
+    body.add(chest)
+
+    const head = makeHead(body, pale, seed)
+    head.position.set(1.0, 0.4, 0)
+
+    const rnd = seeded(seed)
+    for (let i = 0; i < 24; i++) {
+      const u = -0.62 + rnd() * 1.1, th = (rnd() - 0.5) * 2.2
+      const r = 0.45 - Math.abs(u) * 0.12
+      const n = new THREE.Vector3(0, Math.cos(th), Math.sin(th) * 0.92).normalize()
+      const p = new THREE.Vector3(u, 0.05 + Math.cos(th) * r + 0.005, Math.sin(th) * r * 0.92)
+      if (p.y < 0.12) continue
+      tuft(body, p, n, Math.PI + (rnd() - 0.5) * 0.8)
+    }
+    for (let i = 0; i < 5; i++) tuft(body, new THREE.Vector3(-0.92 - i * 0.12, 0.03, (rnd() - 0.5) * 0.1), new THREE.Vector3(0, 1, 0), Math.PI)
+    return { root, body, head, paws, chest }
+  }
+
+  // ——— la mère
+  const mom = makeOtter(7)
+  const otter = mom.root
+  const body = mom.body
+  const head = mom.head
+  scene.add(otter)
+  // son galet préféré, posé sur la poitrine
+  addPeb(2, stoneTones[1], mom.chest, [0.1, 0.06, 0], [0, 0.4, 0], [0.85, 0.45, 0.7])
 
   // ——— ondes
   const ringGeos = [0, 1, 2, 3].map(k => {

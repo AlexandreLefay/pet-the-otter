@@ -17,7 +17,7 @@ Vite + React + TypeScript · three.js (scène 3D) · Zustand (état) · sauvegar
 
 ## Direction artistique (à respecter)
 Encre sur papier, noir et blanc. Papier `#FAF9F6`, fond scène `#FBFAF8`, encre `#1B1A18`, graphite `#6B6863`.
-Accent unique : orange galet `oklch(0.66 0.16 45)` (texte : `oklch(0.52 0.15 45)`) — réservé à la monnaie,
+Accent unique : bleu galet `oklch(0.64 0.15 250)` (texte : `oklch(0.50 0.15 250)`, variables `--galet` / `--galet-text`) — réservé à la monnaie,
 aux gains et à l'ombre du bouton principal, **jamais dans la scène 3D**.
 Typo : Space Mono (titres, chiffres) + IBM Plex Mono (texte). Bordures 2 px, angles droits, ombres dures `3px 3px 0`.
 Le filtre « boil » ne s'applique pas au texte. Maquette de référence : artifact Claude « Loutre Design System ».

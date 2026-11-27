@@ -24,12 +24,12 @@ export function BoilFilters() {
   )
 }
 
-/** Icône de monnaie : le galet orange. */
+/** Icône de monnaie : le galet bleu. */
 export function GaletIcon({ size = 40 }: { size?: number }) {
   return (
     <svg viewBox="0 0 40 26" width={size} height={(size * 26) / 40} style={{ overflow: 'visible' }} aria-hidden>
       <g style={{ filter: 'var(--boil)' }} stroke="#1b1a18" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 18 C2 10 12 4 22 5 C33 6 39 12 37 18 C35 23 25 24 16 23 C9 23 5 22 4 18 Z" fill="oklch(0.66 0.16 45)" />
+        <path d="M4 18 C2 10 12 4 22 5 C33 6 39 12 37 18 C35 23 25 24 16 23 C9 23 5 22 4 18 Z" fill="var(--galet)" />
         <path d="M24 20 l5 -4 M28 21 l5 -4" fill="none" strokeWidth={1.4} />
       </g>
     </svg>

@@ -1,0 +1,74 @@
+import { useGame, perSecond, multiplier, moodLabel } from '../game/store'
+import { fmt, fmtRate } from '../game/format'
+import { GaletIcon } from './Boil'
+
+export function Logo() {
+  return (
+    <div className="logo">
+      <div className="logo__title">LOUTRE.</div>
+      <div className="logo__sub">plateau n°1 · la flaque</div>
+    </div>
+  )
+}
+
+export function Counter() {
+  const galets = useGame(s => s.galets)
+  const rate = useGame(s => perSecond(s.owned))
+  return (
+    <div className="counter">
+      <div className="counter__row">
+        <GaletIcon />
+        <div className="counter__value">{fmt(galets)}</div>
+      </div>
+      <div className="counter__rate">+ {fmtRate(rate)} galets / s</div>
+    </div>
+  )
+}
+
+export function Mood() {
+  const humeur = useGame(s => s.humeur)
+  return (
+    <div className="mood">
+      <div className="mood__row">
+        <div>humeur</div>
+        <div>{moodLabel(humeur)} · ×{multiplier(humeur)}</div>
+      </div>
+      <div className="gauge">
+        <div className="gauge__fill" style={{ width: `${humeur}%` }} />
+      </div>
+    </div>
+  )
+}
+
+export function Toast() {
+  const toast = useGame(s => s.toast)
+  if (!toast) return null
+  return (
+    <div className="toast" key={toast.id}>
+      <div className="toast__dot" />
+      <div>{toast.text}</div>
+    </div>
+  )
+}
+
+export function Gains() {
+  const gains = useGame(s => s.gains)
+  return (
+    <>
+      {gains.map(g => (
+        <div key={g.id} className="gain" style={{ left: g.x, top: g.y - 20, ['--r' as string]: `${g.rot}deg` }}>
+          {g.text}
+        </div>
+      ))}
+    </>
+  )
+}
+
+export function Hint() {
+  const caresses = useGame(s => s.caresses)
+  return (
+    <div className="hint" style={{ opacity: caresses < 3 ? 1 : 0 }}>
+      caressez-la — cliquez, ou glissez dessus
+    </div>
+  )
+}

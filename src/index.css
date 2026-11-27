@@ -1,0 +1,122 @@
+/* ——— Design tokens (cf. passation) */
+:root {
+  --paper: #faf9f6;
+  --scene-bg: #fbfaf8;
+  --ink: #1b1a18;
+  --graphite: #6b6863;
+  --pencil: #b9b5ad;
+  --disabled: #9a968f;
+  --orange: oklch(0.66 0.16 45);
+  --orange-text: oklch(0.52 0.15 45);
+  --shadow: 3px 3px 0 var(--ink);
+  --font-display: 'Space Mono', monospace;
+  --font-text: 'IBM Plex Mono', monospace;
+  --boil: url(#boil0);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+body {
+  background: var(--scene-bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; }
+
+.game { position: fixed; inset: 0; overflow: hidden; user-select: none; -webkit-user-select: none; }
+
+/* ——— Scène */
+.scene { position: absolute; inset: 0; filter: var(--boil); touch-action: none; }
+
+/* ——— Zones d'interface (flottent, sans cadres) */
+.logo { position: absolute; left: 48px; top: 44px; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.logo__title { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
+.logo__sub { color: var(--graphite); }
+
+.counter { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
+.counter__row { display: flex; align-items: center; gap: 12px; }
+.counter__value { font-family: var(--font-display); font-weight: 700; font-size: 48px; line-height: 1; font-variant-numeric: tabular-nums; }
+.counter__rate { color: var(--orange-text); font-weight: 500; }
+
+.mood { position: absolute; right: 48px; top: 44px; width: 220px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.mood__row { display: flex; justify-content: space-between; gap: 8px; }
+.mood__row > :first-child { color: var(--graphite); }
+
+.gauge { height: 10px; border: 2px solid var(--ink); overflow: hidden; }
+.gauge__fill { height: 100%; background: var(--ink); transition: width 200ms; }
+
+.tabs { position: absolute; left: 48px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
+.tab { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-family: var(--font-display); font-size: 15px; background: none; border: 0; cursor: pointer; color: var(--disabled); text-align: left; }
+.tab:hover { color: var(--graphite); }
+.tab__dot { width: 8px; height: 8px; border: 2px solid var(--ink); background: #fff; flex: none; }
+.tab--active { color: var(--ink); }
+.tab--active .tab__dot { background: var(--ink); }
+
+.panel { position: absolute; right: 48px; top: 50%; transform: translateY(-50%); width: 290px; max-height: calc(100vh - 260px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 4px 4px 0; scrollbar-width: none; }
+.panel::-webkit-scrollbar { display: none; }
+.panel__empty { color: var(--graphite); text-wrap: pretty; }
+
+/* ——— Carte boutique */
+.card { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 14px; background: #fff; border: 2px solid var(--ink); text-align: left; cursor: pointer; box-shadow: var(--shadow); transition: transform 100ms, box-shadow 100ms, opacity 200ms; }
+.card:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.card:disabled { cursor: default; box-shadow: none; opacity: 0.4; }
+.card--hidden:disabled { opacity: 0.25; }
+.card__name, .card__count { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+.card__desc { color: var(--graphite); font-size: 12px; text-wrap: pretty; }
+.card__cost { color: var(--orange-text); font-weight: 500; font-size: 12px; white-space: nowrap; align-self: end; }
+
+/* ——— Succès */
+.badge { display: flex; align-items: center; gap: 12px; }
+.badge--locked { opacity: 0.4; }
+.badge__ring { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 20px; background: #fff; }
+.badge--locked .badge__ring { border-style: dashed; }
+.badge__name { font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 1.1; }
+.badge__desc { color: var(--graphite); font-size: 12px; }
+
+/* ——— Notification absurde */
+.toast { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); max-width: min(640px, calc(100vw - 32px)); animation: toast-in 400ms ease-out; pointer-events: none; }
+.toast__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--orange); flex: none; }
+@keyframes toast-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(8px) rotate(-2deg); }
+  30% { opacity: 1; transform: translateX(-50%) rotate(2deg); }
+  60% { transform: translateX(-50%) rotate(-1.5deg); }
+  100% { transform: translateX(-50%) rotate(0); }
+}
+
+/* ——— Gain flottant */
+.gain { position: fixed; pointer-events: none; font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--orange-text); animation: float-up 900ms ease-out forwards; }
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--r)); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% - 70px)) rotate(var(--r)); }
+}
+
+/* ——— Lien « recommencer » */
+.link { position: absolute; left: 48px; bottom: 44px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.link:hover { color: var(--ink); }
+
+.link-row { position: absolute; left: 48px; bottom: 44px; display: flex; gap: 12px; font-size: 12px; color: var(--ink); }
+.link-inline { font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.link-inline:hover { color: var(--ink); }
+
+.hint { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); color: var(--disabled); pointer-events: none; transition: opacity 600ms; }
+
+/* ——— Mobile : boutique en bas, onglets en ligne */
+@media (max-width: 820px) {
+  .logo { left: 20px; top: 20px; }
+  .logo__title { font-size: 18px; }
+  .logo__sub { display: none; }
+  .counter { top: 56px; }
+  .counter__value { font-size: 36px; }
+  .mood { right: 20px; top: 20px; width: 140px; gap: 6px; font-size: 12px; }
+  .tabs { left: 0; right: 0; top: auto; bottom: 214px; transform: none; flex-direction: row; gap: 14px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
+  .tab { font-size: 13px; white-space: nowrap; padding: 4px 0; }
+  .panel { left: 0; right: 0; top: auto; bottom: 16px; transform: none; width: auto; max-height: 190px; padding: 0 20px 4px; }
+  .link, .link-row { left: auto; right: 20px; bottom: auto; top: 64px; }
+  .toast { bottom: auto; top: 120px; }
+  .hint { top: 34%; }
+}

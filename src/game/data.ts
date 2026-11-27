@@ -1,0 +1,90 @@
+// Contenu du jeu : améliorations, succès, textes. Tout ce qui est « réglable » vit ici.
+
+export type Category = 'caresses' | 'accessoires' | 'decors' | 'famille'
+
+export interface Upgrade {
+  id: string
+  category: Category
+  name: string
+  desc: string
+  base: number
+  /** + galets par caresse */
+  click?: number
+  /** + galets par seconde */
+  auto?: number
+  /** texte affiché au premier achat */
+  firstBuy?: string
+}
+
+export const COST_GROWTH = 1.15
+
+export const UPGRADES: Upgrade[] = [
+  // — Caresses (clic + auto, la boucle de base)
+  { id: 'patte', category: 'caresses', name: 'Patte douce', desc: '+1 galet par caresse', base: 15, click: 1 },
+  { id: 'plume', category: 'caresses', name: "Plume d'oie", desc: 'la chatouille toute seule · +0,5 /s', base: 40, auto: 0.5 },
+  { id: 'galet', category: 'caresses', name: 'Galet plat', desc: 'elle jongle avec · +3 /s', base: 220, auto: 3, firstBuy: 'Un galet a été promu chef de service.' },
+  { id: 'gant', category: 'caresses', name: 'Gant en laine', desc: '+8 galets par caresse', base: 900, click: 8 },
+  { id: 'bain', category: 'caresses', name: 'Bain tiède', desc: 'elle se détend · +15 /s', base: 2600, auto: 15 },
+  { id: 'riviere', category: 'caresses', name: 'La rivière', desc: 'tout le monde vient · +400 /s', base: 90000, auto: 400 },
+
+  // — Accessoires (portés par la loutre — visuel à venir)
+  { id: 'noeud', category: 'accessoires', name: 'Nœud papillon', desc: 'elle se sent importante · +2 /caresse', base: 500, click: 2, firstBuy: 'La loutre porte un nœud papillon. Elle exige qu’on la vouvoie.' },
+  { id: 'lunettes', category: 'accessoires', name: 'Lunettes de soleil', desc: 'il n’y a pas de soleil · +20 /s', base: 5000, auto: 20 },
+
+  // — Décors (posés dans la scène — visuel à venir)
+  { id: 'rocher', category: 'decors', name: 'Un rocher', desc: 'il ne fait rien · +1 /s', base: 120, auto: 1, firstBuy: 'Le rocher a été embauché. Il ne fait rien, mais il le fait bien.' },
+  { id: 'nenuphar', category: 'decors', name: 'Nénuphar', desc: 'pour la déco · +10 /s', base: 3200, auto: 10 },
+
+  // — Famille (nouvelles loutres — visuel à venir)
+  { id: 'amie', category: 'famille', name: 'Une autre loutre', desc: 'elles se caressent entre elles · +80 /s', base: 14000, auto: 80, firstBuy: 'Une deuxième loutre est arrivée. Elle a apporté son propre galet.' },
+  { id: 'cousin', category: 'famille', name: 'Le cousin', desc: 'personne ne l’a invité · +250 /s', base: 60000, auto: 250 },
+]
+
+export interface GameSnapshot {
+  galets: number
+  totalGalets: number
+  caresses: number
+  owned: Record<string, number>
+  humeur: number
+}
+
+export interface Achievement {
+  id: string
+  name: string
+  desc: string
+  test: (s: GameSnapshot) => boolean
+  toast?: string
+}
+
+const owns = (s: GameSnapshot, id: string) => (s.owned[id] || 0) > 0
+const ownedTotal = (s: GameSnapshot) => Object.values(s.owned).reduce((a, b) => a + b, 0)
+
+export const ACHIEVEMENTS: Achievement[] = [
+  { id: 'premier', name: 'Premier contact', desc: 'une caresse', test: s => s.caresses >= 1, toast: 'Premier contact. Elle n’a pas mordu.' },
+  { id: 'moite', name: 'Main moite', desc: '100 caresses', test: s => s.caresses >= 100, toast: '100 caresses. Votre main est moite. La loutre aussi.' },
+  { id: 'avocat', name: 'Conseil juridique', desc: '1 000 caresses', test: s => s.caresses >= 1000, toast: '1 000 caresses. La loutre a contacté un avocat.' },
+  { id: 'rocher', name: 'Ami du rocher', desc: 'embaucher le rocher', test: s => owns(s, 'rocher') },
+  { id: 'anges', name: 'Aux anges', desc: 'humeur au maximum', test: s => s.humeur >= 100 },
+  { id: 'riche', name: 'Petit pécule', desc: '1 000 galets gagnés', test: s => s.totalGalets >= 1000 },
+  { id: 'tres-riche', name: 'Banque centrale', desc: '100 000 galets gagnés', test: s => s.totalGalets >= 100000, toast: 'La Banque centrale des galets vous a envoyé une carte de vœux.' },
+  { id: 'collection', name: 'Collectionneur', desc: '25 objets achetés', test: s => ownedTotal(s) >= 25 },
+  { id: 'castors', name: 'Les castors sont au courant', desc: 'une autre loutre', test: s => owns(s, 'amie'), toast: 'Les castors sont au courant. Ils ne disent rien.' },
+  { id: 'riviere', name: 'Tout le monde vient', desc: 'acheter la rivière', test: s => owns(s, 'riviere') },
+]
+
+/** Phrases qui tombent au hasard, de temps en temps. */
+export const IDLE_LINES = [
+  'La loutre a cligné des yeux. C’est sans doute un signe.',
+  'Un galet a été promu chef de service.',
+  'Une réunion a eu lieu dans la flaque. Rien n’a été décidé.',
+  'La loutre pense à quelque chose. Elle ne dira pas quoi.',
+  'Le galet sur son ventre est son préféré. Ne le dites pas aux autres.',
+  'Il paraît que l’eau est mouillée. À vérifier.',
+]
+
+export const MOODS = [
+  { min: 80, label: 'aux anges' },
+  { min: 50, label: 'contente' },
+  { min: 20, label: 'curieuse' },
+  { min: 0, label: 'méfiante' },
+]

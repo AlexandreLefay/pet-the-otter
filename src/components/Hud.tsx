@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+import { sound } from '../game/sound'
 import { useGame, perSecond, multiplier, moodLabel } from '../game/store'
 import { fmt, fmtRate } from '../game/format'
 import { GaletIcon, LogoMark } from './Boil'
@@ -73,5 +75,14 @@ export function Hint() {
     <div className="hint" style={{ opacity: caresses < 3 ? 1 : 0 }}>
       caressez-la — cliquez, ou glissez dessus
     </div>
+  )
+}
+
+export function SoundToggle() {
+  const muted = useSyncExternalStore(sound.subscribe, () => sound.muted)
+  return (
+    <button className="sound-toggle" onClick={() => sound.setMuted(!muted)} aria-pressed={!muted}>
+      son : {muted ? 'coupé' : 'oui'}
+    </button>
   )
 }

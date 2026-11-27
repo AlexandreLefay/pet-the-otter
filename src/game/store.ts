@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { ACHIEVEMENTS, COST_GROWTH, IDLE_LINES, MOODS, UPGRADES, type Upgrade } from './data'
 import { fmt } from './format'
+import { sound } from './sound'
 
 const SAVE_KEY = 'loutre-save-v2'
 
@@ -100,6 +101,7 @@ export const useGame = create<GameState>((set, get) => ({
       petTick: s.petTick + 1,
     })
     setTimeout(() => set(st => ({ gains: st.gains.filter(q => q.id !== g.id) })), 900)
+    sound.plop(s.humeur)
     checkAchievements()
   },
 
@@ -111,6 +113,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (s.galets < c) return
     const first = count(s.owned, id) === 0
     set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 } })
+    sound.buy(count(s.owned, id) + 1)
     if (first && u.firstBuy) get().notify(u.firstBuy)
     checkAchievements()
   },
@@ -143,6 +146,7 @@ function checkAchievements() {
   if (!fresh.length) return
   useGame.setState({ unlocked: [...s.unlocked, ...fresh.map(a => a.id)] })
   const a = fresh[fresh.length - 1]
+  sound.success()
   s.notify(a.toast ?? `Succès : ${a.name}.`)
 }
 

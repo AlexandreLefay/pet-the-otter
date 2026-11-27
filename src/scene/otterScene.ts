@@ -2,7 +2,6 @@
 // createOtterScene(el, { onPet }) → { dispose() }
 // Le conteneur doit avoir une taille ; le canvas le remplit et suit ses redimensionnements.
 import * as THREE from 'three'
-import { OTTER_HOVER_ATTR } from './handCursor'
 
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
@@ -12,6 +11,9 @@ export interface OtterSceneOptions {
 type V3 = [number, number, number]
 
 const INK = 0x1b1a18
+
+/** Posé sur <html> quand le pointeur survole la loutre (le curseur main se met à caresser). */
+export const OTTER_HOVER_ATTR = 'data-otter-hover'
 const PET_THROTTLE_MS = 140
 
 export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions = {}) {

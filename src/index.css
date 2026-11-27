@@ -97,9 +97,17 @@ button { font: inherit; color: inherit; }
   100% { opacity: 0; transform: translate(-50%, calc(-50% - 70px)) rotate(var(--r)); }
 }
 
-/* ——— Curseur main 3D (souris uniquement, cf. scene/handCursor.ts) */
+/* ——— Curseur main dessinée (souris uniquement, cf. components/HandCursor.tsx) */
 .has-hand-cursor, .has-hand-cursor * { cursor: none !important; }
 .hand-cursor { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 120ms; will-change: transform; }
+.hand-cursor.is-visible { opacity: 1; }
+.hand-cursor svg { display: block; overflow: visible; }
+/* pivot = bout de l'index (13, 2) : le point de clic ne bouge jamais */
+.hand-cursor__hand { transform-box: view-box; transform-origin: 13px 2px; transform: rotate(-14deg); transition: transform 90ms ease-out; }
+.is-down .hand-cursor__hand { transform: rotate(-14deg) scale(0.86); }
+.is-petting .hand-cursor__hand { animation: hand-pet 640ms ease-in-out infinite; }
+.is-petting.is-down .hand-cursor__hand { animation-duration: 240ms; }
+@keyframes hand-pet { 0%, 100% { transform: rotate(-21deg); } 50% { transform: rotate(-6deg); } }
 
 /* ——— Lien « recommencer » */
 .link { position: absolute; left: 48px; bottom: 44px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }

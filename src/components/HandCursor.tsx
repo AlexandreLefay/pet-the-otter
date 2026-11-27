@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { OTTER_HOVER_ATTR } from '../scene/otterScene'
+import { useGame } from '../game/store'
 
 // Bout de l'index dans le viewBox du dessin : c'est le point de clic (1 unité = 1 px).
 const TIP_X = 13
@@ -13,6 +14,8 @@ const TIP_Y = 2
  */
 export function HandCursor() {
   const ref = useRef<HTMLDivElement>(null)
+  // avec le « Gant en laine », la main porte une moufle tricotée
+  const mitten = useGame(s => (s.owned.gant || 0) > 0)
 
   useEffect(() => {
     const el = ref.current
@@ -65,7 +68,8 @@ export function HandCursor() {
           <path d={HAND} transform="translate(2.5 2.5)" fill="#1b1a18" opacity={0.14} />
           <g style={{ filter: 'var(--boil)' }} stroke="#1b1a18" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <path d={CUFF} fill="#f4f2ee" />
-            <path d={HAND} fill="#fff" />
+            <path d={HAND} fill={mitten ? '#e4e0d8' : '#fff'} />
+            {mitten && <path d={KNIT} fill="none" strokeWidth={1.1} />}
             {/* plis des doigts repliés, ongle, liseré de manchette */}
             <path d="M17 15.5 C17.2 17.3 17.6 18.3 18.3 19 M23 16.5 C23.2 18 23.5 19 24 19.6 M28.4 18 C28.5 19.4 28.8 20.3 29.2 21 M11.3 6.2 q1.7 -1.6 3.4 0 M14 38.6 L27.5 38.6" fill="none" strokeWidth={1.4} />
           </g>
@@ -84,3 +88,5 @@ const HAND =
   'C32 27.2 30.9 31 28.2 34.2 L13.2 34.2 ' +
   'C10.4 31.4 6.6 27.6 4.8 24.4 C3.8 22.3 4.6 20.1 6.6 20 C7.8 19.9 8.6 20.7 9 22 Z'
 const CUFF = 'M12.4 34 L28.9 34 L29.3 42.4 L12 42.4 Z'
+// mailles du tricot (petits « v ») sur le dos de la moufle
+const KNIT = 'M19 22 l1.2 1.4 l1.2 -1.4 M23.5 22.5 l1.2 1.4 l1.2 -1.4 M16 26.5 l1.2 1.4 l1.2 -1.4 M21 27 l1.2 1.4 l1.2 -1.4 M26 26.5 l1.2 1.4 l1.2 -1.4'

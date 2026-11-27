@@ -29,11 +29,11 @@ export const UPGRADES: Upgrade[] = [
   { id: 'bain', category: 'caresses', name: 'Bain tiède', desc: 'elle se détend · +15 /s', base: 2600, auto: 15 },
   { id: 'riviere', category: 'caresses', name: 'La rivière', desc: 'tout le monde vient · +400 /s', base: 90000, auto: 400 },
 
-  // — Accessoires (portés par la loutre — visuel à venir)
+  // — Accessoires (portés par la loutre, visibles dans la scène)
   { id: 'noeud', category: 'accessoires', name: 'Nœud papillon', desc: 'elle se sent importante · +2 /caresse', base: 500, click: 2, firstBuy: 'La loutre porte un nœud papillon. Elle exige qu’on la vouvoie.' },
   { id: 'lunettes', category: 'accessoires', name: 'Lunettes de soleil', desc: 'il n’y a pas de soleil · +20 /s', base: 5000, auto: 20 },
 
-  // — Décors (posés dans la scène — visuel à venir)
+  // — Décors (posés dans la scène)
   { id: 'rocher', category: 'decors', name: 'Un rocher', desc: 'il ne fait rien · +1 /s', base: 120, auto: 1, firstBuy: 'Le rocher a été embauché. Il ne fait rien, mais il le fait bien.' },
   { id: 'nenuphar', category: 'decors', name: 'Nénuphar', desc: 'pour la déco · +10 /s', base: 3200, auto: 10 },
 

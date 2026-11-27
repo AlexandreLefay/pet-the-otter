@@ -1,12 +1,15 @@
 import { useGame, perSecond, multiplier, moodLabel } from '../game/store'
 import { fmt, fmtRate } from '../game/format'
-import { GaletIcon } from './Boil'
+import { GaletIcon, LogoMark } from './Boil'
 
 export function Logo() {
   return (
     <div className="logo">
-      <div className="logo__title">LOUTRE.</div>
-      <div className="logo__sub">plateau n°1 · la flaque</div>
+      <LogoMark />
+      <div className="logo__text">
+        <div className="logo__title">LOUTRE.</div>
+        <div className="logo__sub">plateau n°1 · la flaque</div>
+      </div>
     </div>
   )
 }

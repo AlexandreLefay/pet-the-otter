@@ -11,6 +11,7 @@ Vite + React + TypeScript · three.js (scène 3D) · Zustand (état) · sauvegar
 ## Où est quoi
 - `src/game/data.ts` — contenu : améliorations (4 catégories), succès, phrases absurdes, paliers d'humeur
 - `src/game/store.ts` — état + boucle : caresse, achat, revenu passif (tick 100 ms), humeur (−7/s, ≥80 → ×2), succès, notifications, sauvegarde 2 s
+- `src/scene/handCursor.ts` — curseur « main gantée » 3D (souris seulement), même rendu toon + encre ; réagit au survol de la loutre via l'attribut `data-otter-hover`
 - `src/scene/otterScene.ts` — scène three.js : caméra ortho isométrique, toon shading, contour encre qui « tremble », flaque masquée au stencil, loutre qui dérive, ondes ; clic ou glisser (1 caresse / 140 ms) → `onPet(x, y)`
 - `src/components/` — Hud (logo, compteur, humeur, toast, gains flottants), Panels (onglets, boutique, succès), Boil (filtres SVG du trait vivant, icône galet)
 - `src/index.css` — design tokens + styles, layout mobile sous 820 px
@@ -24,7 +25,8 @@ Le filtre « boil » ne s'applique pas au texte. Maquette de référence : artif
 
 ## État actuel
 Fait : scène 3D complète, boucle de jeu, 5 onglets (Caresses, Accessoires, Décors, Famille, Succès),
-12 améliorations, 10 succès, notifications absurdes, confirmation « recommencer » intégrée, mobile de base.
+12 améliorations, 10 succès, notifications absurdes, confirmation « recommencer » intégrée, mobile de base,
+curseur main 3D, logo (`public/logo.svg`, composant `LogoMark` dans Boil.tsx, aussi utilisé en favicon).
 
 ## Prochaines étapes envisagées
 1. Afficher les accessoires sur la loutre, les décors dans la scène, les nouvelles loutres (famille) dans la flaque
@@ -32,4 +34,5 @@ Fait : scène 3D complète, boucle de jeu, 5 onglets (Caresses, Accessoires, Dé
 3. Peaufiner le mobile
 
 ## Workflow
+Commits au format Conventional Commits (`feat:`, `fix:`, `style:`…), titre court à l'impératif, corps qui explique quoi et pourquoi.
 Les sessions Cowork ne peuvent pas `git push` : Claude modifie et commit, Alexandre pousse depuis son terminal.

@@ -7,7 +7,7 @@ import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './componen
 import { Achievements, Shop, Story, Tabs, type TabId } from './components/Panels'
 
 export default function App() {
-  const [tab, setTab] = useState<TabId>('caresses')
+  const [tab, setTab] = useState<TabId>('boutique')
   useEffect(() => startGameLoops(), [])
 
   // confirmation intégrée (pas de confirm() natif : bloqué dans certains cadres)
@@ -22,7 +22,7 @@ export default function App() {
       <Counter />
       <Mood />
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : <Shop category={tab} />}
+      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : <Shop />}
       {confirming ? (
         <div className="link-row">
           <span>tout recommencer ?</span>

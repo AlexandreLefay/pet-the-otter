@@ -2,13 +2,17 @@ import { useGame, cost, count, isSeen, maxed } from '../game/store'
 import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
 
-export type TabId = Category | 'succes' | 'histoire'
+export type TabId = 'boutique' | 'succes' | 'histoire'
 
-export const TABS: { id: TabId; name: string }[] = [
+const SECTIONS: { id: Category; name: string }[] = [
   { id: 'caresses', name: 'Caresses' },
   { id: 'accessoires', name: 'Accessoires' },
   { id: 'decors', name: 'Décors' },
   { id: 'famille', name: 'Famille' },
+]
+
+export const TABS: { id: TabId; name: string }[] = [
+  { id: 'boutique', name: 'Boutique' },
   { id: 'succes', name: 'Succès' },
   { id: 'histoire', name: 'Histoire' },
 ]
@@ -27,13 +31,32 @@ export function Tabs({ active, onChange }: { active: TabId; onChange: (t: TabId)
   )
 }
 
-export function Shop({ category }: { category: Category }) {
+/** Toute la boutique sur un seul écran, rangée par sections. */
+export function Shop() {
+  return (
+    <div className="panel panel--shop">
+      {SECTIONS.map(sec => (
+        <section key={sec.id} className="shop__section">
+          <h3 className="shop__title">{sec.name}</h3>
+          <div className="shop__grid">
+            <ShopItems category={sec.id} />
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+function ShopItems({ category }: { category: Category }) {
   const galets = useGame(s => s.galets)
   const owned = useGame(s => s.owned)
   const buy = useGame(s => s.buy)
-  const items = UPGRADES.filter(u => u.category === category)
+  // on montre ce qui est déjà découvert, plus une seule carte mystère par section
+  const all = UPGRADES.filter(u => u.category === category)
+  const firstHidden = all.find(u => !isSeen(u, { galets, owned }))
+  const items = all.filter(u => u === firstHidden || isSeen(u, { galets, owned }))
   return (
-    <div className="panel">
+    <>
       {items.map(u => {
         const c = cost(u, owned)
         const seen = isSeen(u, { galets, owned })
@@ -49,7 +72,7 @@ export function Shop({ category }: { category: Category }) {
           </button>
         )
       })}
-    </div>
+    </>
   )
 }
 

@@ -1,8 +1,8 @@
-import { useGame, cost, count, isSeen } from '../game/store'
-import { ACHIEVEMENTS, UPGRADES, type Category } from '../game/data'
+import { useGame, cost, count, isSeen, maxed } from '../game/store'
+import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
 
-export type TabId = Category | 'succes'
+export type TabId = Category | 'succes' | 'histoire'
 
 export const TABS: { id: TabId; name: string }[] = [
   { id: 'caresses', name: 'Caresses' },
@@ -10,6 +10,7 @@ export const TABS: { id: TabId; name: string }[] = [
   { id: 'decors', name: 'Décors' },
   { id: 'famille', name: 'Famille' },
   { id: 'succes', name: 'Succès' },
+  { id: 'histoire', name: 'Histoire' },
 ]
 
 export function Tabs({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
@@ -36,14 +37,15 @@ export function Shop({ category }: { category: Category }) {
       {items.map(u => {
         const c = cost(u, owned)
         const seen = isSeen(u, { galets, owned })
-        const can = seen && galets >= c
+        const full = maxed(u, owned)
+        const can = seen && !full && galets >= c
         const n = count(owned, u.id)
         return (
           <button key={u.id} className={'card' + (seen ? '' : ' card--hidden')} disabled={!can} onClick={() => buy(u.id)}>
             <div className="card__name">{seen ? u.name : '? ? ?'}</div>
             <div className="card__count">{n || ''}</div>
             <div className="card__desc">{seen ? u.desc : '…'}</div>
-            <div className="card__cost">{fmt(c)} galets</div>
+            <div className="card__cost">{full ? 'adopté' : `${fmt(c)} galets`}</div>
           </button>
         )
       })}
@@ -64,6 +66,25 @@ export function Achievements() {
               <div className="badge__name">{a.name}</div>
               <div className="badge__desc">{a.desc}</div>
             </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export function Story() {
+  const chapters = useGame(s => s.chapters)
+  return (
+    <div className="panel">
+      {STORY.map((c, i) => {
+        const ok = chapters.includes(c.id)
+        return (
+          <div key={c.id} className={'chapter' + (ok ? '' : ' chapter--locked')}>
+            <div className="chapter__title">
+              {i + 1}. {ok ? c.title : '? ? ?'}
+            </div>
+            <div className="chapter__text">{ok ? c.text : '…'}</div>
           </div>
         )
       })}

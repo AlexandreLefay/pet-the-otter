@@ -8,7 +8,13 @@ export function SceneView() {
     const el = ref.current
     if (!el) return
     const s = createOtterScene(el, { onPet: (x, y) => useGame.getState().pet(x, y) })
-    return () => s.dispose()
+    // la scène affiche ce qui a été acheté
+    s.sync(useGame.getState().owned)
+    const unsub = useGame.subscribe((st, prev) => { if (st.owned !== prev.owned) s.sync(st.owned) })
+    return () => {
+      unsub()
+      s.dispose()
+    }
   }, [])
   return <div ref={ref} className="scene" />
 }

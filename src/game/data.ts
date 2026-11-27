@@ -14,6 +14,8 @@ export interface Upgrade {
   auto?: number
   /** texte affiché au premier achat */
   firstBuy?: string
+  /** quantité maximale (ex. : un seul bébé) */
+  max?: number
 }
 
 export const COST_GROWTH = 1.15
@@ -35,7 +37,8 @@ export const UPGRADES: Upgrade[] = [
   { id: 'rocher', category: 'decors', name: 'Un rocher', desc: 'il ne fait rien · +1 /s', base: 120, auto: 1, firstBuy: 'Le rocher a été embauché. Il ne fait rien, mais il le fait bien.' },
   { id: 'nenuphar', category: 'decors', name: 'Nénuphar', desc: 'pour la déco · +10 /s', base: 3200, auto: 10 },
 
-  // — Famille (nouvelles loutres — visuel à venir)
+  // — Famille (le bébé, puis d'autres loutres)
+  { id: 'bebe', category: 'famille', name: 'Le bébé', desc: 'il dort sur son ventre · +4 /s', base: 300, auto: 4, max: 1, firstBuy: 'Un bébé est apparu sur son ventre. Elle fait comme si c’était prévu.' },
   { id: 'amie', category: 'famille', name: 'Une autre loutre', desc: 'elles se caressent entre elles · +80 /s', base: 14000, auto: 80, firstBuy: 'Une deuxième loutre est arrivée. Elle a apporté son propre galet.' },
   { id: 'cousin', category: 'famille', name: 'Le cousin', desc: 'personne ne l’a invité · +250 /s', base: 60000, auto: 250 },
 ]
@@ -87,4 +90,31 @@ export const MOODS = [
   { min: 50, label: 'contente' },
   { min: 20, label: 'curieuse' },
   { min: 0, label: 'méfiante' },
+]
+
+/** L'histoire, en chapitres débloqués par la progression. */
+export interface Chapter {
+  id: string
+  title: string
+  text: string
+  test: (s: GameSnapshot) => boolean
+}
+
+export const STORY: Chapter[] = [
+  { id: 'flaque', title: 'La flaque', test: s => s.caresses >= 1,
+    text: 'Il était une fois une loutre qui flottait sur le dos, dans une flaque. Elle n’avait rien demandé à personne.' },
+  { id: 'galets', title: 'Les galets', test: s => s.totalGalets >= 60,
+    text: 'Chaque caresse fait apparaître un galet. Personne ne sait pourquoi. La loutre a décidé de ne pas poser de questions.' },
+  { id: 'vide', title: 'Quelque chose manque', test: s => s.totalGalets >= 180,
+    text: 'Elle regarde souvent son ventre, comme s’il y manquait quelque chose. Le galet fait de son mieux.' },
+  { id: 'bebe', title: 'Le bébé', test: s => owns(s, 'bebe'),
+    text: 'Un matin, il y avait un bébé sur son ventre. Il dort. Elle le tient fort, pour qu’il ne dérive pas.' },
+  { id: 'mot', title: 'Le premier mot', test: s => owns(s, 'bebe') && s.caresses >= 400,
+    text: 'Le bébé a dit son premier mot : « galet ». Sa mère est très fière, et un peu inquiète.' },
+  { id: 'bande', title: 'La bande', test: s => owns(s, 'amie'),
+    text: 'D’autres loutres sont arrivées. Elles se tiennent la patte pour ne pas partir à la dérive. Le rocher, lui, reste où il est.' },
+  { id: 'cousin', title: 'Le cousin', test: s => owns(s, 'cousin'),
+    text: 'Le cousin est arrivé sans prévenir, avec un chapeau. Personne ne sait d’où vient le chapeau.' },
+  { id: 'riviere', title: 'La rivière', test: s => owns(s, 'riviere'),
+    text: 'La flaque est devenue une rivière. Le bébé ne s’en est pas rendu compte : il dormait.' },
 ]

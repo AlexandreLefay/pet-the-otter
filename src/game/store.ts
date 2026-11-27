@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ACHIEVEMENTS, COST_GROWTH, IDLE_LINES, MOODS, UPGRADES, type Upgrade } from './data'
+import { ACHIEVEMENTS, COST_GROWTH, IDLE_LINES, MOODS, STORY, UPGRADES, type Upgrade } from './data'
 import { fmt } from './format'
 import { sound } from './sound'
 
@@ -24,6 +24,8 @@ interface SavedState {
   caresses: number
   owned: Record<string, number>
   unlocked: string[]
+  /** chapitres de l'histoire déjà débloqués */
+  chapters: string[]
 }
 
 interface GameState extends SavedState {
@@ -36,7 +38,7 @@ interface GameState extends SavedState {
   pet: (x: number, y: number) => void
   buy: (id: string) => void
   tick: (dt: number) => void
-  notify: (text: string) => void
+  notify: (text: string, ms?: number) => void
   reset: () => void
 }
 
@@ -50,6 +52,7 @@ export const multiplier = (humeur: number) => (humeur >= 80 ? 2 : 1)
 export const moodLabel = (humeur: number) => MOODS.find(m => humeur >= m.min)!.label
 export const cost = (u: Upgrade, owned: Record<string, number>) =>
   Math.ceil(u.base * Math.pow(COST_GROWTH, count(owned, u.id)))
+export const maxed = (u: Upgrade, owned: Record<string, number>) => u.max !== undefined && count(owned, u.id) >= u.max
 
 /** Visible si : déjà possédée, ≥ 40 % du prix, ou la précédente de sa catégorie est possédée. */
 export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
@@ -60,7 +63,7 @@ export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
 
 // ——— sauvegarde
 function load(): SavedState {
-  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [] }
+  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [] }
   try {
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return empty
@@ -71,8 +74,8 @@ function load(): SavedState {
 }
 function save(s: SavedState) {
   try {
-    const { galets, totalGalets, caresses, owned, unlocked } = s
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked }))
+    const { galets, totalGalets, caresses, owned, unlocked, chapters } = s
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked, chapters }))
   } catch {
     /* stockage indisponible : tant pis */
   }
@@ -110,7 +113,7 @@ export const useGame = create<GameState>((set, get) => ({
     const u = UPGRADES.find(x => x.id === id)
     if (!u) return
     const c = cost(u, s.owned)
-    if (s.galets < c) return
+    if (s.galets < c || maxed(u, s.owned)) return
     const first = count(s.owned, id) === 0
     set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 } })
     sound.buy(count(s.owned, id) + 1)
@@ -124,10 +127,10 @@ export const useGame = create<GameState>((set, get) => ({
     set({ galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * dt) })
   },
 
-  notify: text => {
+  notify: (text, ms = 4200) => {
     clearTimeout(toastTimer)
     set({ toast: { id: ++uid, text } })
-    toastTimer = setTimeout(() => set({ toast: null }), 4200)
+    toastTimer = setTimeout(() => set({ toast: null }), ms)
   },
 
   reset: () => {
@@ -136,11 +139,28 @@ export const useGame = create<GameState>((set, get) => ({
     } catch {
       /* rien */
     }
-    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], humeur: 0, gains: [], toast: null })
+    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], humeur: 0, gains: [], toast: null })
   },
 }))
 
 function checkAchievements() {
+  checkSuccesses()
+  checkStory()
+}
+
+/** Un nouveau chapitre reste affiché plus longtemps qu'un succès, avec son propre son. */
+function checkStory() {
+  const s = useGame.getState()
+  // les chapitres se débloquent dans l'ordre : on ne teste que le premier non lu
+  const i = STORY.findIndex(c => !s.chapters.includes(c.id))
+  if (i < 0 || !STORY[i].test(s)) return
+  const c = STORY[i]
+  useGame.setState({ chapters: [...s.chapters, c.id] })
+  sound.chapter()
+  s.notify(`Chapitre ${i + 1} · ${c.title}. ${c.text}`, 7500)
+}
+
+function checkSuccesses() {
   const s = useGame.getState()
   const fresh = ACHIEVEMENTS.filter(a => !s.unlocked.includes(a.id) && a.test(s))
   if (!fresh.length) return
@@ -179,3 +199,6 @@ export function startGameLoops() {
     window.removeEventListener('beforeunload', onHide)
   }
 }
+
+// Outil de test en développement uniquement : window.__loutre.setState({ galets: 1e6 })
+if (import.meta.env.DEV) (window as unknown as { __loutre: typeof useGame }).__loutre = useGame

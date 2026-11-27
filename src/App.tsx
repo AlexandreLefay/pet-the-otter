@@ -4,7 +4,7 @@ import { BoilFilters } from './components/Boil'
 import { SceneView } from './components/SceneView'
 import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './components/Hud'
-import { Achievements, Shop, Tabs, type TabId } from './components/Panels'
+import { Achievements, Shop, Story, Tabs, type TabId } from './components/Panels'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('caresses')
@@ -22,7 +22,7 @@ export default function App() {
       <Counter />
       <Mood />
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'succes' ? <Achievements /> : <Shop category={tab} />}
+      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : <Shop category={tab} />}
       {confirming ? (
         <div className="link-row">
           <span>tout recommencer ?</span>

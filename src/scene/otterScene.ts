@@ -250,7 +250,7 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
     ;[-1, 1].forEach(sd => {
       const foot = new THREE.Group()
       foot.position.set(-0.7, 0.36, sd * 0.2)
-      foot.rotation.set(sd * 0.45, 0, 1.05)
+      foot.rotation.set(sd * 0.3, 0, 0.5)
       body.add(foot)
       add(footGeo, pawMat, foot, [0, 0.08, 0], null, [0.36, 0.95, 1.35])
       ;[-0.07, 0, 0.07].forEach(z => {
@@ -298,7 +298,27 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
   const head = mom.head
   scene.add(otter)
   // son galet préféré, posé sur la poitrine
-  addPeb(2, stoneTones[1], mom.chest, [0.1, 0.06, 0], [0, 0.4, 0], [0.85, 0.45, 0.7])
+  const favPebble = addPeb(2, stoneTones[1], mom.chest, [0.1, 0.06, 0], [0, 0.4, 0], [0.85, 0.45, 0.7])
+
+  // ——— le bébé : couché sur le ventre de sa mère, la tête vers elle, endormi
+  const pupFur = toon(0xc9c4bb), pupPale = toon(0xf1ede5)
+  const pup = new THREE.Group()
+  pup.visible = false
+  mom.chest.add(pup)
+  const pupInner = new THREE.Group() // respiration et arrivée
+  pup.add(pupInner)
+  pup.scale.setScalar(1.15)
+  add(new THREE.SphereGeometry(0.22, 20, 14), pupFur, pupInner, [-0.06, 0.07, 0], null, [1.35, 0.7, 1])
+  ;[-1, 1].forEach(sd => add(new THREE.SphereGeometry(0.06, 10, 8), pawMat, pupInner, [-0.33, 0.05, sd * 0.12], null, [1, 0.6, 1]))
+  const pupHead = new THREE.Group()
+  pupHead.position.set(0.22, 0.15, 0)
+  pupInner.add(pupHead)
+  add(new THREE.SphereGeometry(0.16, 20, 14), pupPale, pupHead, [0, 0, 0])
+  ;[-1, 1].forEach(sd => {
+    add(earGeo, pawMat, pupHead, [sd * 0.13, 0.1, -0.03], null, [0.6, 0.6, 0.45])
+    add(arc, black, pupHead, [sd * 0.06, 0.03, 0.148], [0, 0, Math.PI], [0.6, 0.45, 1], false)
+  })
+  add(noseGeo, black, pupHead, [0, -0.035, 0.158], null, [0.7, 0.45, 0.4], false)
 
   // ——— ondes
   const ringGeos = [0, 1, 2, 3].map(k => {
@@ -369,6 +389,17 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
   const pos = new THREE.Vector2(0, 0), tgt = new THREE.Vector2(0, 0)
   const tmp = new THREE.Vector3()
   let idle = 0, heading = 0.3, nextRip = 0, last = performance.now()
+  let pupIn = 1, hug = 0, synced = false
+  /** Met la scène en accord avec les achats (appelé à chaque changement de `owned`). */
+  const sync = (owned: Record<string, number>) => {
+    const wantPup = (owned.bebe || 0) > 0
+    if (wantPup && !pup.visible) {
+      pup.visible = true
+      pupIn = synced ? 0 : 1
+      if (synced) { hop = 1; ripple(true) }
+    } else if (!wantPup) pup.visible = false
+    synced = true
+  }
   const loop = (t: number) => {
     const dt = Math.min(0.05, (t - last) / 1000)
     last = t
@@ -397,6 +428,20 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
     otter.updateMatrixWorld(true)
     const hp = head.getWorldPosition(tmp)
     head.lookAt(hp.add(camDir))
+
+    // bébé : arrivée en rebond, respiration, la mère le serre dans ses pattes
+    if (pup.visible) {
+      pupIn = Math.min(1, pupIn + dt / 0.7)
+      const pop = pupIn < 1 ? 1 + Math.sin(pupIn * Math.PI) * 0.35 : 1
+      const br = 1 + Math.sin(t / 520) * 0.04
+      pupInner.scale.set(pupIn * pop, pupIn * pop * br, pupIn * pop)
+      pupInner.position.y = Math.sin(pupIn * Math.PI) * 0.5
+      pupHead.lookAt(pupHead.getWorldPosition(tmp).add(camDir))
+      pupHead.rotateX(Math.max(0, Math.sin(t / 2300)) * 0.25) // relève la tête de temps en temps
+    }
+    hug += ((pup.visible ? 1 : 0) - hug) * Math.min(1, dt * 4)
+    mom.paws.forEach((a, i) => { a.rotation.x = (i ? 1 : -1) * (0.9 + 0.55 * hug) })
+    favPebble.position.set(0.1 - 0.42 * hug, 0.06, 0)
     if (t > nextRip) { ripple(false); nextRip = t + 900 + Math.random() * 2200 }
     for (let i = ripples.length - 1; i >= 0; i--) {
       const r = ripples[i]
@@ -416,6 +461,7 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
   const boil = setInterval(() => { inkU.value = 0.038 + Math.random() * 0.016 }, 140)
 
   return {
+    sync,
     dispose() {
       cancelAnimationFrame(raf)
       clearInterval(boil)

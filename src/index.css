@@ -109,6 +109,12 @@ button { font: inherit; color: inherit; }
 .is-petting.is-down .hand-cursor__hand { animation-duration: 240ms; }
 @keyframes hand-pet { 0%, 100% { transform: rotate(-21deg); } 50% { transform: rotate(-6deg); } }
 
+/* ——— Histoire */
+.chapter { padding: 12px 14px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
+.chapter__title { font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+.chapter__text { color: var(--graphite); font-size: 12px; line-height: 1.5; text-wrap: pretty; }
+.chapter--locked { box-shadow: none; opacity: 0.4; }
+
 /* ——— Bouton son */
 .sound-toggle { position: absolute; left: 48px; bottom: 68px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 .sound-toggle:hover { color: var(--ink); }

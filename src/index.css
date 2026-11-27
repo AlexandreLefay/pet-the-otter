@@ -99,7 +99,7 @@ button { font: inherit; color: inherit; }
 
 /* ——— Curseur main 3D (souris uniquement, cf. scene/handCursor.ts) */
 .has-hand-cursor, .has-hand-cursor * { cursor: none !important; }
-.hand-cursor { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 150ms; filter: var(--boil); will-change: transform; }
+.hand-cursor { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 120ms; will-change: transform; }
 
 /* ——— Lien « recommencer » */
 .link { position: absolute; left: 48px; bottom: 44px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }

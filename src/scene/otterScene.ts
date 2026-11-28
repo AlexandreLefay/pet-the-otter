@@ -193,12 +193,12 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const toeGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.16, 4)
   const pawGeo = new THREE.SphereGeometry(0.085, 14, 10)
   const armGeo = new THREE.CapsuleGeometry(0.07, 0.16, 6, 12)
-  const headGeo = new THREE.SphereGeometry(0.37, 28, 20)
-  const muzzleGeo = new THREE.SphereGeometry(0.13, 20, 14)
+  const headGeo = new THREE.SphereGeometry(0.33, 28, 20)
+  const muzzleGeo = new THREE.SphereGeometry(0.12, 20, 14)
   const earGeo = new THREE.SphereGeometry(0.07, 12, 10)
   const noseGeo = new THREE.SphereGeometry(0.075, 14, 10)
   const arc = new THREE.TorusGeometry(0.045, 0.008, 4, 12, Math.PI)
-  const whiskerGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.36, 4)
+  const whiskerGeo = new THREE.CylinderGeometry(0.0035, 0.0035, 0.26, 4)
 
   // fourrure : petits « U » à l'encre
   const arcGeo = new THREE.TorusGeometry(0.045, 0.006, 4, 10, Math.PI)
@@ -241,47 +241,53 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const petalGeo = new THREE.SphereGeometry(0.055, 12, 8)
   const feather = toon(0xffffff)
 
-  /** Tête de loutre (face vers +z) : claire, oreilles rondes, grosse truffe ; yeux et détails selon `look`. */
+  /**
+   * Tête de loutre de mer (face vers +z) : large et un peu aplatie, petites oreilles basses,
+   * deux gros coussinets de moustaches, une truffe sombre, des yeux petits et écartés.
+   */
   const makeHead = (parent: THREE.Object3D, look: Look, seed: number, light = false) => {
     const head = new THREE.Group()
     parent.add(head)
     const mat = tone(look.pale), paw = tone(look.paw)
-    add(headGeo, mat, head, [0, 0, 0], null, [1.06, 0.95, 0.95])
+    add(headGeo, mat, head, [0, 0, 0], null, [1.1, 0.86, 1])
     ;[-1, 1].forEach(sd => {
-      add(muzzleGeo, mat, head, [sd * 0.085, -0.1, 0.29], null, [1, 0.85, 0.8])
-      add(earGeo, paw, head, [sd * 0.31, 0.22, -0.04], null, [look.ear, look.ear, 0.6])
-      // les yeux : fermés « ‿ », ouverts « • », un clin d'œil, ou ronds d'étonnement
-      const eye: V3 = [sd * 0.14, 0.07, 0.335]
+      // coussinets de moustaches, gonflés, qui se touchent sous la truffe
+      add(muzzleGeo, mat, head, [sd * 0.07, -0.075, 0.25], null, [1.05, 0.8, 0.78])
+      // petites oreilles rondes, basses sur les côtés
+      add(earGeo, paw, head, [sd * 0.3, 0.12, -0.07], null, [0.75 * look.ear, 0.7 * look.ear, 0.5])
+      // les yeux : petits et écartés ; fermés « ‿ », ouverts « • », un clin d'œil, ou ronds d'étonnement
+      const eye: V3 = [sd * 0.13, 0.09, 0.275]
       const kind = look.eyes === 'wink' ? (sd < 0 ? 'closed' : 'open') : look.eyes
-      if (kind === 'closed') add(arc, black, head, eye, [0, 0, Math.PI], [1.15, 0.7, 1], false)
-      else if (kind === 'open') add(dotGeo, black, head, eye, null, [1, 1.15, 0.6], false)
+      if (kind === 'closed') add(arc, black, head, eye, [0, 0, Math.PI], [0.95, 0.6, 1], false)
+      else if (kind === 'open') add(dotGeo, black, head, eye, null, [0.8, 0.95, 0.6], false)
       else {
-        add(ringGeo, black, head, eye, null, null, false)
-        add(dotGeo, black, head, eye, null, [0.45, 0.45, 0.45], false)
+        add(ringGeo, black, head, eye, null, [0.85, 0.85, 1], false)
+        add(dotGeo, black, head, eye, null, [0.4, 0.4, 0.4], false)
       }
-      add(arc, black, head, [sd * 0.04, -0.19, 0.3], [0, 0, Math.PI], [0.8, 0.8, 1], false)
-      ;[0.03, -0.03].forEach(dy => {
-        const w = add(whiskerGeo, black, head, [sd * 0.32, -0.11 + dy, 0.26], null, null, false)
-        w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(sd, dy * 4 - 0.05, 0.25).normalize())
+      add(arc, black, head, [sd * 0.035, -0.155, 0.27], [0, 0, Math.PI], [0.65, 0.65, 1], false)
+      ;[0.025, -0.02].forEach(dy => {
+        const w = add(whiskerGeo, black, head, [sd * 0.21, -0.08 + dy, 0.27], null, null, false)
+        w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(sd, dy * 3 - 0.08, 0.15).normalize())
       })
     })
-    add(noseGeo, black, head, [0, -0.02, 0.405], null, [1.45, 0.85, 0.7], false)
-    if (look.extra === 'patch') add(new THREE.SphereGeometry(0.12, 14, 10), paw, head, [0.14, 0.08, 0.27], null, [1, 0.85, 0.5])
+    // la truffe : large et sombre, posée en haut des coussinets
+    add(noseGeo, black, head, [0, -0.005, 0.325], null, [1.55, 0.95, 0.75], false)
+    if (look.extra === 'patch') add(new THREE.SphereGeometry(0.1, 14, 10), paw, head, [0.13, 0.09, 0.235], null, [1, 0.85, 0.5])
     if (look.extra === 'flower') {
       // une fleur glissée derrière l'oreille
       const f = new THREE.Group()
-      f.position.set(-0.3, 0.3, 0.08)
+      f.position.set(-0.27, 0.24, 0.04)
       head.add(f)
       for (let k = 0; k < 5; k++) add(petalGeo, feather, f, [Math.cos(k * 1.26) * 0.07, Math.sin(k * 1.26) * 0.07, 0], null, [1, 1, 0.6])
       add(petalGeo, stoneTones[2], f, [0, 0, 0.02], null, [0.6, 0.6, 0.6])
     }
-    if (look.extra === 'mohawk') [-0.08, 0, 0.08].forEach((z, k) => add(new THREE.ConeGeometry(0.05, 0.16, 8), paw, head, [0, 0.38 - Math.abs(z), z - 0.05 * k], [-0.3 + k * 0.3, 0, 0]))
+    if (look.extra === 'mohawk') [-0.08, 0, 0.08].forEach((z, k) => add(new THREE.ConeGeometry(0.05, 0.16, 8), paw, head, [0, 0.31 - Math.abs(z), z - 0.05 * k], [-0.3 + k * 0.3, 0, 0]))
     const rnd = seeded(seed + 3)
     for (let i = 0; i < (light ? 0 : 10); i++) {
       const th = rnd() * Math.PI * 2, ph = rnd() * 1.4
       const n = new THREE.Vector3(Math.cos(th) * Math.sin(ph), Math.cos(ph), Math.sin(th) * Math.sin(ph))
       if (n.z > 0.3) continue
-      tuft(head, n.clone().multiplyScalar(0.36), n, Math.PI + (rnd() - 0.5))
+      tuft(head, n.clone().multiplyScalar(0.3).multiply(new THREE.Vector3(1.1, 0.86, 1)), n, Math.PI + (rnd() - 0.5))
     }
     return head
   }
@@ -340,7 +346,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     body.add(chest)
 
     const head = makeHead(body, look, seed, light)
-    head.position.set(1.0, 0.4, 0)
+    head.position.set(0.95, 0.36, 0)
     if (look.extra === 'scarf') {
       // écharpe tricotée autour du cou
       const sc = add(new THREE.TorusGeometry(0.27, 0.07, 8, 24), tone(0xd6d1c6), body, [0.84, 0.36, 0], [0, Math.PI / 2, 0.3])
@@ -476,13 +482,13 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'noeud': {
         ;[-1, 1].forEach(sd => add(new THREE.ConeGeometry(0.08, 0.15, 12), bowMat, g, [sd * 0.08, 0, 0], [0, 0, sd * Math.PI / 2]))
         add(new THREE.SphereGeometry(0.04, 10, 8), bowMat, g, [0, 0, 0.01])
-        g.position.set(0, -0.37, 0.16)
+        g.position.set(0, -0.31, 0.12)
         return { obj: g, parent: head, water: false }
       }
       case 'lunettes': {
-        ;[-1, 1].forEach(sd => add(lensGeo, black, g, [sd * 0.14, 0, 0], [Math.PI / 2, 0, 0], null, false))
-        add(new THREE.BoxGeometry(0.1, 0.02, 0.02), black, g, [0, 0.02, 0], null, null, false)
-        g.position.set(0, 0.08, 0.35)
+        ;[-1, 1].forEach(sd => add(lensGeo, black, g, [sd * 0.13, 0, 0], [Math.PI / 2, 0, 0], [0.9, 1, 0.9], false))
+        add(new THREE.BoxGeometry(0.08, 0.02, 0.02), black, g, [0, 0.02, 0], null, null, false)
+        g.position.set(0, 0.09, 0.29)
         return { obj: g, parent: head, water: false }
       }
       case 'plume': {
@@ -512,7 +518,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           const a = (k / 7) * Math.PI * 2
           add(new THREE.ConeGeometry(0.04, 0.17, 6), algaeMat, g, [Math.cos(a) * 0.2, 0.08, Math.sin(a) * 0.2], [Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25])
         }
-        g.position.set(0, 0.36, -0.08)
+        g.position.set(0, 0.29, -0.06)
         g.rotation.x = -0.45
         return { obj: g, parent: head, water: false }
       }
@@ -522,7 +528,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           const a = -1.1 + (k / 4) * 2.2
           add(petalGeo, shellMat, g, [Math.sin(a) * 0.3, -Math.cos(a) * 0.09, Math.cos(a) * 0.08], null, [0.8, 0.65, 0.6])
         }
-        g.position.set(0, -0.33, 0.12)
+        g.position.set(0, -0.29, 0.1)
         return { obj: g, parent: head, water: false }
       }
       case 'bateau': {
@@ -578,8 +584,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'grandmere': {
         // la grand-mère : pelage blanchi, lunettes rondes, châle, elle se berce à l'écart
         const o = makeOtter(77, { fur: 0xc9c4ba, pale: 0xfefcf7, paw: 0x9a958c, eyes: 'closed', extra: 'scarf', ear: 0.9, size: 1, feet: 0.3 })
-        ;[-1, 1].forEach(sd => add(ringGeo, black, o.head, [sd * 0.14, 0.07, 0.36], null, [2.2, 2.2, 1], false))
-        add(new THREE.BoxGeometry(0.08, 0.012, 0.012), black, o.head, [0, 0.08, 0.37], null, null, false)
+        ;[-1, 1].forEach(sd => add(ringGeo, black, o.head, [sd * 0.13, 0.09, 0.3], null, [2, 2, 1], false))
+        add(new THREE.BoxGeometry(0.06, 0.012, 0.012), black, o.head, [0, 0.1, 0.31], null, null, false)
         o.root.scale.setScalar(0.85)
         o.root.userData.rig = o
         o.root.position.set(-2.4 * G, 0, 1.9 * G)
@@ -624,7 +630,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         chain.position.set(0.1, -0.17, -0.02)
         chain.rotation.z = 0.5
         g.add(chain)
-        g.position.set(0.14, 0.07, 0.37)
+        g.position.set(0.13, 0.09, 0.3)
         return { obj: g, parent: head, water: false }
       }
       case 'moulin': {
@@ -728,8 +734,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         const o = makeOtter(41, { ...lookFor(41), extra: 'none', eyes: 'open' })
         o.root.scale.setScalar(0.9)
         // le chapeau du cousin
-        add(new THREE.CylinderGeometry(0.17, 0.19, 0.24, 20), bowMat, o.head, [0, 0.45, -0.02], [-0.2, 0, 0.15])
-        add(new THREE.CylinderGeometry(0.31, 0.31, 0.03, 24), bowMat, o.head, [0, 0.34, 0], [-0.2, 0, 0.15])
+        add(new THREE.CylinderGeometry(0.15, 0.17, 0.22, 20), bowMat, o.head, [0, 0.38, -0.02], [-0.2, 0, 0.15])
+        add(new THREE.CylinderGeometry(0.28, 0.28, 0.03, 24), bowMat, o.head, [0, 0.28, 0], [-0.2, 0, 0.15])
         o.root.userData.rig = o
         o.root.position.set(2.6 * G, 0, -1.6 * G)
         return { obj: o.root, parent: scene, water: true }
@@ -819,8 +825,17 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
 
   // ——— boucle
   const camDir = new THREE.Vector3(12, 10.5, 12).normalize().add(new THREE.Vector3(0, 0.35, 0)).normalize()
+  const gUp = new THREE.Vector3(), gFwd = new THREE.Vector3(), gq = new THREE.Quaternion(), gp = new THREE.Vector3()
+  /** Oriente une tête : vers le ciel (le dos sur l'eau), un peu vers l'avant, et à moitié vers la caméra. */
+  const gaze = (h: THREE.Object3D) => {
+    h.parent!.getWorldQuaternion(gq)
+    gUp.set(0, 1, 0).applyQuaternion(gq)
+    gFwd.set(1, 0, 0).applyQuaternion(gq)
+    const dir = gUp.multiplyScalar(0.4).addScaledVector(gFwd, 0.2).addScaledVector(camDir, 0.9).normalize()
+    h.lookAt(h.getWorldPosition(gp).add(dir))
+  }
   const pos = new THREE.Vector2(0, 0), tgt = new THREE.Vector2(0, 0)
-  const tmp = new THREE.Vector3()
+
   let idle = 0, heading = 0.3, nextRip = 0, last = performance.now()
   let pupIn = 1, hug = 0, synced = false
   /** Met la scène en accord avec les achats (appelé à chaque changement de `owned`). */
@@ -917,7 +932,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
               o.root.position.y = Math.sin(t / 900 + k * 2) * 0.03
               o.root.rotation.y = k * 2.1 + Math.sin(t / 5000 + k) * 0.4
               o.root.updateMatrixWorld(true)
-              o.head.lookAt(o.head.getWorldPosition(wq).add(camDir))
+              gaze(o.head)
             })
             break
           case 'phare':
@@ -926,7 +941,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           case 'jumeau': {
             const rig = pr.obj.userData.rig as { inner: THREE.Object3D; head: THREE.Object3D }
             rig.inner.scale.y = 1 + Math.sin(t / 470 + 1.3) * 0.04
-            rig.head.lookAt(rig.head.getWorldPosition(wq).add(camDir))
+            gaze(rig.head)
             rig.head.rotateX(Math.max(0, Math.sin(t / 2700 + 2)) * 0.25)
             break
           }
@@ -935,7 +950,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
             pr.obj.position.set(-2.4 * G + Math.sin(t / 6000) * 0.3, Math.sin(t / 1100) * 0.03, 1.9 * G + Math.cos(t / 7000) * 0.2)
             pr.obj.rotation.set(Math.sin(t / 1400) * 0.08, 2.4 + Math.sin(t / 5000) * 0.3, 0)
             pr.obj.updateMatrixWorld(true)
-            rig.head.lookAt(rig.head.getWorldPosition(wq).add(camDir))
+            gaze(rig.head)
             break
           }
           case 'berceuse':
@@ -973,7 +988,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
             pr.obj.position.y = Math.sin(t / 900 + pr.i * 1.7) * 0.03 + Math.sin(hk * Math.PI) * 0.14
             pr.obj.rotation.set(Math.sin(t / 1300 + pr.i) * 0.06, heading + Math.sin(t / 2100 + pr.i) * 0.12, 0)
             pr.obj.updateMatrixWorld(true)
-            rig.head.lookAt(rig.head.getWorldPosition(wq).add(camDir))
+            gaze(rig.head)
             const link = pr.obj.userData.link as THREE.Mesh
             if (link.visible) {
               // patte de la mère ↔ patte de l'amie
@@ -992,7 +1007,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
             pr.obj.position.set(2.6 * G + Math.sin(t / 5200) * 0.4, Math.sin(t / 800) * 0.03, -1.6 * G + Math.cos(t / 6100) * 0.3)
             pr.obj.rotation.set(0, t / 9000, Math.sin(t / 1500) * 0.04)
             pr.obj.updateMatrixWorld(true)
-            rig.head.lookAt(rig.head.getWorldPosition(wq).add(camDir))
+            gaze(rig.head)
             break
           }
         }
@@ -1031,8 +1046,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     const sq = 1 - 0.06 * Math.sin(squish * Math.PI)
     body.scale.set(1 + (1 - sq) * 0.8, sq, 1 + (1 - sq) * 0.8)
     otter.updateMatrixWorld(true)
-    const hp = head.getWorldPosition(tmp)
-    head.lookAt(hp.add(camDir))
+    gaze(head)
 
     // bébé : arrivée en rebond, respiration, la mère le serre dans ses pattes
     if (pup.visible) {
@@ -1041,7 +1055,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       const br = 1 + Math.sin(t / 520) * 0.04
       pupInner.scale.set(pupIn * pop, pupIn * pop * br, pupIn * pop)
       pupInner.position.y = Math.sin(pupIn * Math.PI) * 0.5
-      pupHead.lookAt(pupHead.getWorldPosition(tmp).add(camDir))
+      gaze(pupHead)
       pupHead.rotateX(Math.max(0, Math.sin(t / 2300)) * 0.25) // relève la tête de temps en temps
     }
     pup.position.z += ((props.jumeau?.length ? 0.2 : 0) - pup.position.z) * Math.min(1, dt * 4)

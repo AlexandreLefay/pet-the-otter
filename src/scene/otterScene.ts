@@ -218,10 +218,95 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   }
   const seeded = (s: number) => () => (s = (s * 16807) % 2147483647) / 2147483647
   const rp = seeded(11)
+  const reeds: THREE.Group[] = []
   ;[[-3.0, -0.6], [-2.75, -0.45], [-2.9, -0.25], [3.1, 0.3], [3.35, 2.0], [0.3, 2.6], [0.6, 2.75], [-0.8, -2.5], [2.6, -2.3], [-2.6, 1.9], [1.1, -2.4]].forEach(([x, z], i) => {
     const sc = 0.6 + rp() * 0.8
     spreadAdd(addPeb(i % 5, stoneTones[i % 3], scene, [x, 0.04 * sc, z], [0, rp() * 6, 0], [1.35 * sc, 0.5 * sc, (0.9 + rp() * 0.4) * sc]))
   })
+
+  // ——— décor d'ambiance (gratuit) : le plateau n'est jamais vide
+  // Tout est placé en dehors de la mare (ellipse 3,4 × 2,6) et s'écarte quand elle grandit.
+  const outsidePond = (x: number, z: number, margin = 0.5) => (x / (3.4 + margin)) ** 2 + (z / (2.6 + margin)) ** 2 > 1
+  const rAmb = seeded(321)
+  const spot = (rMin: number, rMax: number, margin = 0.5): [number, number] => {
+    for (let k = 0; k < 40; k++) {
+      const a = rAmb() * Math.PI * 2, r = rMin + rAmb() * (rMax - rMin)
+      const x = Math.cos(a) * r, z = Math.sin(a) * r * 0.85
+      if (outsidePond(x, z, margin)) return [x, z]
+    }
+    return [rMax, 0]
+  }
+  const cattailMat = toon(0x6f6a62), bushMat = toon(0xc4bfb5), flowerMat = toon(0xffffff)
+  const bladeGeo = new THREE.CylinderGeometry(0.006, 0.018, 0.34, 4)
+  bladeGeo.translate(0, 0.17, 0)
+  // touffes d'herbe : trois brins d'encre penchés
+  for (let i = 0; i < 32; i++) {
+    const [x, z] = spot(3.2, 9.8)
+    const tuftG = new THREE.Group()
+    for (let k = 0; k < 3; k++) {
+      const b = new THREE.Mesh(bladeGeo, black)
+      b.rotation.set((rAmb() - 0.5) * 0.6, rAmb() * 3, (k - 1) * 0.35)
+      b.scale.setScalar(0.7 + rAmb() * 0.6)
+      tuftG.add(b)
+    }
+    tuftG.position.set(x, 0, z)
+    scene.add(tuftG)
+    spreadAdd(tuftG)
+  }
+  // galets épars
+  for (let i = 0; i < 26; i++) {
+    const [x, z] = spot(3.4, 10)
+    const sc = 0.45 + rAmb() * 0.7
+    spreadAdd(addPeb(i % 5, stoneTones[i % 3], scene, [x, 0.04 * sc, z], [0, rAmb() * 6, 0], [1.3 * sc, 0.5 * sc, (0.9 + rAmb() * 0.4) * sc]))
+  }
+  // roseaux au bord de l'eau : tiges fines et épis sombres
+  const stemGeo = new THREE.CylinderGeometry(0.012, 0.016, 1, 4)
+  stemGeo.translate(0, 0.5, 0)
+  const cattailGeo = new THREE.CapsuleGeometry(0.045, 0.16, 4, 8)
+  ;[[3.3, 1.2], [-3.4, 1.0], [1.4, 2.6], [-1.6, -2.5], [3.0, -1.6], [-2.6, 2.1]].forEach(([x, z], c) => {
+    const grp = new THREE.Group()
+    const n = 3 + (c % 3)
+    for (let k = 0; k < n; k++) {
+      const h = 0.7 + rAmb() * 0.6
+      const st = new THREE.Mesh(stemGeo, black)
+      st.scale.set(1, h, 1)
+      st.position.set((rAmb() - 0.5) * 0.35, 0, (rAmb() - 0.5) * 0.35)
+      st.rotation.set((rAmb() - 0.5) * 0.25, 0, (rAmb() - 0.5) * 0.25)
+      grp.add(st)
+      if (k % 2 === 0) {
+        const top = add(cattailGeo, cattailMat, st, [0, 0.82, 0])
+        top.scale.set(1, 1 / h, 1)
+      }
+    }
+    grp.position.set(x * 1.08, 0, z * 1.08)
+    grp.userData.sway = c
+    scene.add(grp)
+    spreadAdd(grp)
+    reeds.push(grp)
+  })
+  // petits buissons ronds
+  const bushGeo = new THREE.SphereGeometry(0.28, 14, 10)
+  for (let i = 0; i < 9; i++) {
+    const [x, z] = spot(5.2, 9.6, 1)
+    const grp = new THREE.Group()
+    ;[[0, 0, 0, 1], [0.24, -0.05, 0.1, 0.75], [-0.2, -0.06, 0.12, 0.7]].forEach(([dx, dy, dz, sc]) =>
+      add(bushGeo, bushMat, grp, [dx, 0.2 + dy, dz], null, [sc, sc * 0.85, sc]))
+    grp.position.set(x, 0, z)
+    grp.rotation.y = rAmb() * 6
+    scene.add(grp)
+    spreadAdd(grp)
+  }
+  // fleurs blanches dans l'herbe
+  const petalSmall = new THREE.SphereGeometry(0.04, 8, 6)
+  for (let i = 0; i < 18; i++) {
+    const [x, z] = spot(3.4, 9.6)
+    const f = new THREE.Group()
+    for (let k = 0; k < 5; k++) add(petalSmall, flowerMat, f, [Math.cos(k * 1.26) * 0.05, 0.05, Math.sin(k * 1.26) * 0.05], null, [1, 0.5, 1])
+    add(petalSmall, stoneTones[2], f, [0, 0.06, 0], null, [0.6, 0.5, 0.6], false)
+    f.position.set(x, 0, z)
+    scene.add(f)
+    spreadAdd(f)
+  }
 
   // ——— loutre de mer : sur le dos, tête claire, pattes sur la poitrine, pieds hors de l'eau.
   // Modèle réutilisable (la mère, et plus tard les amies et le cousin).
@@ -492,7 +577,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Prop = { obj: THREE.Object3D; born: number; y0: number; splash: boolean; water: boolean; i: number }
   const props: Record<string, Prop[]> = {}
   let clock = 0 // ms, mis à jour par la boucle
-  const CAP: Record<string, number> = { rocher: 4, nenuphar: 6, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 3, parasol: 2, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
+  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
 
   // ——— la bande : la première amie tient la patte de la mère ; les autres forment de petits
   // groupes (2 à 4) qui dérivent chacun à leur rythme autour d'elle, sans ordre précis
@@ -571,7 +656,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       pr.obj.position.z = st.z
     })
   }
-  const PARASOLS: [number, number][] = [[-3.7, -1.9], [3.5, 2.1]]
+  const PARASOLS: [number, number][] = [[-3.7, -1.9], [3.5, 2.1], [-5.6, 2.4], [5.2, -2.6], [0.6, -4.6], [-1.2, 4.4]]
   const paperMat = toon(0xffffff), shellMat = toon(0xefe9dd), algaeMat = toon(0xb9b4aa)
   // bateau en papier : coque trapézoïdale et voile triangulaire, extrudées
   const boatShape = new THREE.Shape([new THREE.Vector2(-0.32, 0.1), new THREE.Vector2(0.32, 0.1), new THREE.Vector2(0.2, -0.04), new THREE.Vector2(-0.2, -0.04)])
@@ -582,9 +667,10 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   sailGeo.translate(0, 0, -0.01)
   const noteMat = () => new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0 })
   // rochers « embauchés », au bord de la flaque
-  const ROCKS: [number, number, number][] = [[-4.3, 0.7, 0.42], [4.5, -0.5, 0.36], [-1.4, -3.1, 0.3], [2.6, 2.8, 0.34]]
+  const ROCKS: [number, number, number][] = [[-4.3, 0.7, 0.42], [4.5, -0.5, 0.36], [-1.4, -3.1, 0.3], [2.6, 2.8, 0.34],
+    [-6.6, -1.8, 0.5], [6.4, 1.6, 0.46], [-3.2, 4.6, 0.38], [3.6, -4.2, 0.4], [-7.6, 1.6, 0.34], [7.4, -2.8, 0.36], [0.8, 6.2, 0.42], [-0.6, -6.4, 0.44]]
   // nénuphars, sur l'eau
-  const PADS: [number, number][] = [[2.3, 0.9], [-2.5, -0.3], [0.9, -1.8], [-1.1, 1.7], [2.7, -1.1], [-2.1, 1.1]]
+  const PADS: [number, number][] = [[2.3, 0.9], [-2.5, -0.3], [0.9, -1.8], [-1.1, 1.7], [2.7, -1.1], [-2.1, 1.1], [1.6, 1.9], [-1.7, -1.6], [2.9, 0.1], [-2.9, 0.6], [0.2, 2.2], [0.4, -2.2]]
   const padMat = toon(0xedeae3)
   const padGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.035, 28, 1, false, 0.35, Math.PI * 2 - 0.7)
   const bowMat = toon(0x3a3935)
@@ -786,15 +872,69 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         return { obj: g, parent: scene, water: false }
       }
       case 'arcenciel': {
-        // un arc-en-ciel en gris : quatre bandes, du plus clair au plus foncé
-        ;[0xf1eee8, 0xdcd8cf, 0xc6c1b7, 0xafaa9f].forEach((c, k) => {
-          const band = new THREE.Mesh(new THREE.TorusGeometry(3.3 - k * 0.26, 0.13, 6, 64, Math.PI), tone(c))
+        // un arc-en-ciel léger : trois bandes fines et translucides, cernées d'un trait d'encre fin,
+        // et deux petits nuages à ses pieds
+        ;[0xffffff, 0xe2ded6, 0xc9c4ba].forEach((c, k) => {
+          const band = new THREE.Mesh(new THREE.TorusGeometry(2.9 - k * 0.14, 0.07, 6, 72, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85 }))
           g.add(band)
+        })
+        ;[2.99, 2.53].forEach(r => g.add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.012, 4, 72, Math.PI), black)))
+        ;[-2.75, 2.75].forEach(x => {
+          const cloud = new THREE.Group()
+          ;[[0, 0, 0, 0.32], [0.3, -0.05, 0.05, 0.24], [-0.28, -0.06, 0.04, 0.22]].forEach(([dx, dy, dz, r]) =>
+            add(new THREE.SphereGeometry(r, 14, 10), feather, cloud, [dx, dy, dz]))
+          cloud.position.set(x, 0.18, 0)
+          g.add(cloud)
         })
         g.rotation.y = Math.PI / 4
         g.position.set(-3.2, 0, -3.2)
         spreadAdd(g)
         return { obj: g, parent: scene, water: false }
+      }
+      case 'cascade': {
+        // le ruisseau suit le plateau jusqu'au bord avant-droit, puis tombe dans le vide
+        const ang = THREE.MathUtils.degToRad(75)
+        const ex = Math.sin(ang) * SLAB_R, ez = Math.cos(ang) * SLAB_R
+        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(2.4, 0, 0.5), new THREE.Vector3(5.2, 0, 1.0), new THREE.Vector3(8.2, 0, 2.0), new THREE.Vector3(ex + 0.2, 0, ez + 0.05)])
+        const pts = path.getPoints(40)
+        const side = (sgn: number) => pts.map((q, k) => {
+          const tan = path.getTangent(k / 40)
+          const w = 0.32 + 0.1 * Math.sin(k * 0.6) + (k / 40) * 0.25
+          return new THREE.Vector2(q.x - tan.z * w * sgn, -(q.z + tan.x * w * sgn))
+        })
+        const sh = new THREE.Shape()
+        const left = side(1), right = side(-1).reverse()
+        sh.moveTo(left[0].x, left[0].y)
+        left.concat(right).forEach(v => sh.lineTo(v.x, v.y))
+        const stream = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshToonMaterial({ color: 0xdfdbd4, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp }))
+        stream.rotation.x = -Math.PI / 2
+        stream.position.y = 0.019
+        g.add(stream)
+        // la chute d'eau, accrochée à la tranche du plateau
+        const fall = new THREE.Group()
+        fall.position.set(ex, 0, ez)
+        fall.rotation.y = ang
+        g.add(fall)
+        const sheet = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 9), new THREE.MeshBasicMaterial({ color: 0xe6e2da, side: THREE.DoubleSide }))
+        sheet.position.set(0, -4.5, 0.06)
+        fall.add(sheet)
+        ;[-0.48, 0.48].forEach(x => {
+          const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.025, 9), black)
+          edge.position.set(x, -4.5, 0.07)
+          fall.add(edge)
+        })
+        const streaks: THREE.Mesh[] = []
+        for (let k = 0; k < 10; k++) {
+          const d = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.6 + (k % 3) * 0.3), new THREE.MeshBasicMaterial({ color: 0xffffff }))
+          d.position.set(-0.36 + (k % 5) * 0.18, 0, 0.08)
+          d.userData.u = k / 10
+          fall.add(d)
+          streaks.push(d)
+        }
+        // écume au départ de la chute
+        ;[[-0.3, 0.1], [0.05, 0.16], [0.35, 0.08]].forEach(([x, z]) => add(new THREE.SphereGeometry(0.15, 12, 8), feather, fall, [x, 0.06, z], null, [1, 0.6, 1]))
+        g.userData.streaks = streaks
+        return { obj: g, parent: plateau, water: true }
       }
       case 'voisins': {
         // les voisins : leur propre petite flaque, juste à côté, et trois loutres
@@ -1054,7 +1194,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           case 'bateau': {
             // les bateaux font le tour de la mare, chacun à son rythme
             const a = t / (14000 + pr.i * 3000) + pr.i * 2.1
-            const rx = (2.6 + pr.i * 0.35) * G, rz = (1.75 + pr.i * 0.2) * G
+            const rx = (2.4 + (pr.i % 3) * 0.3) * G, rz = (1.6 + (pr.i % 3) * 0.2) * G
             pr.obj.position.set(Math.cos(a) * rx, 0.02 + Math.sin(t / 600 + pr.i) * 0.02, Math.sin(a) * rz)
             pr.obj.rotation.set(Math.sin(t / 700 + pr.i) * 0.08, -a - Math.PI / 2, Math.sin(t / 900) * 0.06)
             break
@@ -1064,6 +1204,12 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
             cloth.scale.set(1 + Math.sin(t / 900) * 0.03, 1 + Math.sin(t / 650) * 0.06, 1)
             break
           }
+          case 'cascade':
+            ;(pr.obj.userData.streaks as THREE.Mesh[]).forEach(d => {
+              const u = (d.userData.u + t / 1400) % 1
+              d.position.y = -0.2 - u * 8.5
+            })
+            break
           case 'moulin':
             ;(pr.obj.userData.wheel as THREE.Object3D).rotation.x = -t / 1400
             break
@@ -1201,6 +1347,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     favPebble.position.set(0.1 - 0.42 * hug, 0.06, 0)
     favPebble.visible = !props.galet?.length
     clock = t
+    reeds.forEach(r => { r.rotation.z = Math.sin(t / 1300 + r.userData.sway * 1.7) * 0.05 })
     if (Math.abs(yawTarget - yaw) > 0.0005) {
       yaw += (yawTarget - yaw) * Math.min(1, dt * 7)
       aimCam()

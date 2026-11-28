@@ -165,8 +165,47 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
   const spread: { o: THREE.Object3D; x: number; z: number }[] = []
   const spreadAdd = (o: THREE.Object3D) => { spread.push({ o, x: o.position.x, z: o.position.z }) }
   const pools: THREE.Mesh[] = []
+  // ——— eau vivante : vaguelettes à l'encre qui dérivent, reflets blancs qui scintillent.
+  // Calculé dans le shader à partir de la position dans le monde : toutes les surfaces d'eau
+  // (mare, flaques, rivière, ruisseau de la cascade, mare des voisins) bougent ensemble.
+  const waterTime = { value: 0 }
+  const waterMat = (c = 0xdfdbd4) => {
+    const mat = new THREE.MeshToonMaterial({ color: c, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp })
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.uTime = waterTime
+      sh.vertexShader = 'varying vec3 vWaterPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvWaterPos = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+      sh.fragmentShader = 'uniform float uTime;\nvarying vec3 vWaterPos;\n' + sh.fragmentShader.replace('#include <dithering_fragment>', `
+        vec2 p = vWaterPos.xz;
+        // deux familles de crêtes fines, ondulées, qui glissent lentement en sens contraires
+        float w1 = sin(p.x * 2.6 + sin(p.y * 1.5 + uTime * 0.5) * 1.4 + uTime * 0.7);
+        float w2 = sin(p.y * 3.3 - uTime * 0.45 + sin(p.x * 2.1 - uTime * 0.3) * 1.1);
+        // chaque crête est un fin trait d'encre coupé en tirets, qui « tremblent » 7 fois par seconde
+        float jit = floor(uTime * 7.0) * 0.13;
+        float dash1 = step(0.42, fract(p.y * 1.3 + 0.35 * sin(p.x * 2.7) + jit));
+        float dash2 = step(0.48, fract(p.x * 1.1 + 0.3 * sin(p.y * 2.2) - jit));
+        float crest = smoothstep(0.968, 0.996, w1) * 0.42 * dash1 + smoothstep(0.975, 0.997, w2) * 0.3 * dash2;
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.42, 0.41, 0.39), crest);
+        // reflets blancs qui s'allument et s'éteignent
+        float g = sin(p.x * 7.0 + uTime * 1.2) * sin(p.y * 6.0 - uTime * 0.9) * sin(uTime * 0.7 + p.x * 0.8 + p.y * 1.3);
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0), smoothstep(0.82, 0.95, g) * 0.85);
+        #include <dithering_fragment>`)
+    }
+    return mat
+  }
+  // contour à l'encre le long des berges (un tube fin qui suit le bord de la forme)
+  const shoreline = (geo: THREE.ShapeGeometry, parent: THREE.Object3D) => {
+    const pos = geo.attributes.position
+    const pts: THREE.Vector3[] = []
+    // les premiers sommets d'une ShapeGeometry suivent le contour, dans l'ordre
+    const n = (geo.parameters.shapes as THREE.Shape).getPoints().length
+    for (let i = 0; i < Math.min(n, pos.count); i++) pts.push(new THREE.Vector3(pos.getX(i), pos.getY(i), 0.004))
+    if (pts.length < 4) return
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), pts.length * 2, 0.022, 4, true), black)
+    parent.add(tube)
+  }
   const water = (geo: THREE.BufferGeometry, c: number, y: number, x = 0, z = 0) => {
-    const m = new THREE.Mesh(geo, new THREE.MeshToonMaterial({ color: c, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp }))
+    const m = new THREE.Mesh(geo, waterMat(c))
+    if (geo instanceof THREE.ShapeGeometry) shoreline(geo, m)
     m.rotation.x = -Math.PI / 2
     m.position.set(x, y, z)
     m.receiveShadow = true
@@ -1141,7 +1180,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
         const left = side(1), right = side(-1).reverse()
         sh.moveTo(left[0].x, left[0].y)
         left.concat(right).forEach(v => sh.lineTo(v.x, v.y))
-        const stream = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshToonMaterial({ color: 0xdfdbd4, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp }))
+        const stream = new THREE.Mesh(new THREE.ShapeGeometry(sh), waterMat())
         stream.rotation.x = -Math.PI / 2
         stream.position.y = 0.019
         g.add(stream)
@@ -1173,7 +1212,9 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
       }
       case 'voisins': {
         // les voisins : leur propre petite flaque, juste à côté, et trois loutres
-        const pool = new THREE.Mesh(blob(1.1, 1.4, 1, 1.7), new THREE.MeshToonMaterial({ color: 0xdfdbd4, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp }))
+        const poolGeo = blob(1.1, 1.4, 1, 1.7)
+        const pool = new THREE.Mesh(poolGeo, waterMat())
+        shoreline(poolGeo, pool)
         pool.rotation.x = -Math.PI / 2
         pool.position.y = 0.02
         pool.receiveShadow = true
@@ -1206,7 +1247,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
         const left = side(1), right = side(-1).reverse()
         sh.moveTo(left[0].x, left[0].y)
         left.concat(right).forEach(v => sh.lineTo(v.x, v.y))
-        const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshToonMaterial({ color: 0xdfdbd4, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp }))
+        const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), waterMat())
         m.rotation.x = -Math.PI / 2
         m.position.y = 0.018
         m.receiveShadow = true
@@ -1689,6 +1730,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
     favPebble.position.set(0.1 - 0.42 * hug, 0.06, 0)
     favPebble.visible = !props.galet?.length
     clock = t
+    waterTime.value = t / 1000
     reeds.forEach(r => { r.rotation.z = Math.sin(t / 1300 + r.userData.sway * 1.7) * 0.05 })
     if (Math.abs(focusTarget - focusK) > 0.001) {
       focusK += (focusTarget - focusK) * Math.min(1, dt * 3.2)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { capacity, useGame } from '../game/store'
 import { fmt } from '../game/format'
 import { sound } from '../game/sound'
@@ -52,6 +52,12 @@ export function Blackjack() {
   const [phase, setPhase] = useState<Phase>('bet')
   const [result, setResult] = useState('')
   const [stake, setStake] = useState(0)
+
+  // les cartes de la main sont aussi posées sur le tapis, dans la scène
+  useEffect(() => {
+    const hide = phase === 'play'
+    useGame.setState({ tableCards: { dealer: dealer.map((c, i) => ({ ...c, hidden: hide && i === 1 })), player } })
+  }, [dealer, player, phase])
 
   if (!atTable) return null
 

@@ -4,6 +4,9 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
+/** Une carte posée sur la table de blackjack. */
+export interface TableCard { rank: string; suit: string; hidden?: boolean }
+
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
   onPet?: (x: number, y: number) => void
@@ -66,7 +69,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
     // Sur écran étroit (mobile) on élargit le cadrage pour garder toute la flaque.
     // la caméra recule au même rythme que le plateau grandit : il reste entier à l'écran
     const e = focusK * focusK * (3 - 2 * focusK)
-    const zoom = FR * G * (1 - e) + 4.6 * e
+    const zoom = FR * G * (1 - e) + 5.4 * e
     aimCam()
     const fr = as < 1 ? zoom * Math.min(1.9, 1.15 / as) : zoom
     cam.left = (-fr * as) / 2
@@ -937,24 +940,74 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
       }
       case 'blackjack': {
         // une table de blackjack en demi-lune, un croupier loutre derrière, un tabouret devant
-        const felt = tone(0x9a958d), wood = tone(0x5f5b55), card = tone(0xffffff)
+        const wood = tone(0x5f5b55), card = tone(0xffffff), leather = tone(0x3a3935)
         const table = new THREE.Group()
         g.add(table)
-        add(new THREE.CylinderGeometry(1.2, 1.2, 0.12, 40, 1, false, -Math.PI / 2, Math.PI), wood, table, [0, 0.78, 0])
-        add(new THREE.CylinderGeometry(1.08, 1.08, 0.06, 40, 1, false, -Math.PI / 2, Math.PI), felt, table, [0, 0.86, 0.02])
-        // l'arc des places, tracé à l'encre sur le tapis
-        const arcLine = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.012, 4, 40, Math.PI), black)
-        arcLine.rotation.set(Math.PI / 2, 0, Math.PI)
-        arcLine.position.y = 0.895
-        table.add(arcLine)
-        ;[-0.7, 0.7].forEach(x => add(new THREE.CylinderGeometry(0.06, 0.08, 0.78, 8), wood, table, [x, 0.39, 0.25]))
-        add(new THREE.CylinderGeometry(0.06, 0.08, 0.78, 8), wood, table, [0, 0.39, 0.85])
-        // jetons et sabot de cartes
-        ;[[-0.5, 0.15], [-0.36, 0.22], [0.52, 0.2]].forEach(([x, z], k) => {
-          for (let h = 0; h < 3 + k; h++) add(new THREE.CylinderGeometry(0.07, 0.07, 0.025, 14), k % 2 ? card : tone(0x3a3935), table, [x, 0.91 + h * 0.028, z], null, null, h === 0)
+        add(new THREE.CylinderGeometry(1.25, 1.25, 0.12, 48, 1, false, -Math.PI / 2, Math.PI), wood, table, [0, 0.78, 0])
+        // le tapis imprimé : arcs, cases de mise, « blackjack paie 3 pour 2 »
+        const feltCv = document.createElement('canvas')
+        feltCv.width = feltCv.height = 512
+        const fx = feltCv.getContext('2d')!
+        const feltTex = new THREE.CanvasTexture(feltCv)
+        feltTex.colorSpace = THREE.SRGBColorSpace
+        const paintFelt = () => {
+          fx.setTransform(1, 0, 0, 1, 0, 0)
+          fx.fillStyle = '#a39e95'
+          fx.fillRect(0, 0, 512, 512)
+          // le côté du joueur (le bord arrondi) est à droite du canevas (cf. UV du cylindre)
+          fx.translate(256, 256)
+          fx.rotate(-Math.PI / 2)
+          fx.strokeStyle = '#1b1a18'
+          fx.fillStyle = '#1b1a18'
+          fx.lineWidth = 5
+          fx.beginPath(); fx.arc(0, 0, 175, 0.15, Math.PI - 0.15); fx.stroke()
+          fx.lineWidth = 3
+          fx.beginPath(); fx.arc(0, 0, 120, 0.35, Math.PI - 0.35); fx.stroke()
+          // cinq cases de mise
+          for (let k = 0; k < 5; k++) {
+            const a = 0.45 + (k / 4) * (Math.PI - 0.9)
+            fx.beginPath(); fx.arc(Math.cos(a) * 205, Math.sin(a) * 205, 22, 0, Math.PI * 2); fx.stroke()
+          }
+          // textes en arc
+          const arcText = (txt: string, r: number, size: number) => {
+            fx.font = `700 ${size}px "Space Mono", monospace`
+            fx.textAlign = 'center'
+            fx.textBaseline = 'middle'
+            const span = txt.length * size * 0.62 / r
+            for (let k = 0; k < txt.length; k++) {
+              const a = Math.PI / 2 + span / 2 - (k + 0.5) * (span / txt.length)
+              fx.save()
+              fx.translate(Math.cos(a) * r, Math.sin(a) * r)
+              fx.rotate(a - Math.PI / 2)
+              fx.fillText(txt[k], 0, 0)
+              fx.restore()
+            }
+          }
+          arcText('BLACKJACK PAIE 3 POUR 2', 148, 19)
+          arcText('LE CROUPIER S’ARRÊTE À 17', 96, 14)
+          feltTex.needsUpdate = true
+        }
+        paintFelt()
+        document.fonts?.ready.then(paintFelt)
+        const feltTop = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.06, 48, 1, false, -Math.PI / 2, Math.PI), [toon(0xa39e95), new THREE.MeshToonMaterial({ map: feltTex, gradientMap: grad }), toon(0xa39e95)])
+        feltTop.position.set(0, 0.86, 0.02)
+        feltTop.receiveShadow = true
+        table.add(feltTop)
+        // boudin de cuir sur le bord arrondi
+        const rail = add(new THREE.TorusGeometry(1.18, 0.075, 8, 48, Math.PI), leather, table, [0, 0.88, 0])
+        rail.rotation.x = Math.PI / 2 // l'arc passe par +z : le bord arrondi, côté joueuse
+        ;[-0.75, 0.75].forEach(x => add(new THREE.CylinderGeometry(0.06, 0.08, 0.78, 8), wood, table, [x, 0.39, 0.3]))
+        add(new THREE.CylinderGeometry(0.06, 0.08, 0.78, 8), wood, table, [0, 0.39, 0.9])
+        // côté croupier : râtelier de jetons et sabot de cartes
+        ;[-0.62, -0.46, -0.3].forEach((x, k) => {
+          for (let h = 0; h < 4 + k; h++) add(new THREE.CylinderGeometry(0.07, 0.07, 0.025, 14), k % 2 ? card : leather, table, [x, 0.91 + h * 0.028, 0.08], null, null, h === 0)
         })
-        add(new THREE.BoxGeometry(0.22, 0.12, 0.3), wood, table, [0.6, 0.95, -0.1])
-        ;[[-0.08, 0.5, 0.2], [0.1, 0.52, -0.15]].forEach(([x, z, r]) => add(new THREE.BoxGeometry(0.16, 0.01, 0.22), card, table, [x, 0.9, z], [0, r, 0]))
+        add(new THREE.BoxGeometry(0.24, 0.13, 0.32), wood, table, [0.62, 0.96, 0.12], [0, -0.3, 0])
+        add(new THREE.BoxGeometry(0.16, 0.012, 0.22), card, table, [0.6, 1.035, 0.12], [0, -0.3, 0])
+        // les cartes de la main en cours, posées sur le tapis (cf. setCards)
+        const cardsGroup = new THREE.Group()
+        table.add(cardsGroup)
+        g.userData.cards = cardsGroup
         // le tabouret du joueur
         add(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 18), wood, table, [0, 0.52, 1.55])
         add(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), black, table, [0, 0.25, 1.55], null, null, false)
@@ -980,7 +1033,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
         player.holder.rotation.y = Math.PI / 2 // face au croupier
         player.holder.visible = false
         table.add(player.holder)
-        table.rotation.y = Math.PI / 4
+        table.rotation.y = -Math.PI / 4 // vue de profil : croupier à droite, joueuse à gauche
         g.position.set(5.0, 0, -0.3)
         g.scale.setScalar(1.15)
         spreadAdd(g)
@@ -1211,6 +1264,45 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
   }
 
   let tableObj: THREE.Object3D | null = null
+  // cartes à jouer : une texture par carte (dessinée une fois), à l'encre sur blanc
+  const cardGeo = new THREE.PlaneGeometry(0.18, 0.25)
+  const cardTex = new Map<string, THREE.Texture>()
+  const cardTexture = (c: TableCard) => {
+    const key = c.hidden ? 'dos' : c.rank + c.suit
+    let tex = cardTex.get(key)
+    if (tex) return tex
+    const cv = document.createElement('canvas')
+    cv.width = 144
+    cv.height = 200
+    const x = cv.getContext('2d')!
+    x.fillStyle = '#ffffff'
+    x.fillRect(0, 0, 144, 200)
+    x.strokeStyle = '#1b1a18'
+    x.lineWidth = 8
+    x.strokeRect(4, 4, 136, 192)
+    if (c.hidden) {
+      // dos de carte : hachures
+      x.lineWidth = 4
+      for (let k = -200; k < 200; k += 16) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 200, 200); x.stroke() }
+      x.lineWidth = 8
+      x.strokeRect(4, 4, 136, 192)
+    } else {
+      const soft = c.suit === '♥' || c.suit === '♦'
+      x.fillStyle = soft ? '#6b6863' : '#1b1a18'
+      x.font = '700 44px "Space Mono", monospace'
+      x.textAlign = 'left'
+      x.textBaseline = 'top'
+      x.fillText(c.rank, 14, 10)
+      x.font = '700 84px serif'
+      x.textAlign = 'center'
+      x.textBaseline = 'middle'
+      x.fillText(c.suit, 72, 118)
+    }
+    tex = new THREE.CanvasTexture(cv)
+    tex.colorSpace = THREE.SRGBColorSpace
+    cardTex.set(key, tex)
+    return tex
+  }
   let atTable = false, leaving = false, seatStart = 0
   const syncProps = (owned: Record<string, number>, animate: boolean) => {
     gTarget = growthFor(owned)
@@ -1638,10 +1730,25 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
       if (on) {
         // la table se cadre dans le haut de l'écran : le panneau de jeu occupe le bas
         tableObj.getWorldPosition(focusPt)
-        focusPt.x += Math.sin(yaw) * 1.05
-        focusPt.z += Math.cos(yaw) * 1.05
+        focusPt.x += Math.sin(yaw) * 0.85
+        focusPt.z += Math.cos(yaw) * 0.85
         seatStart = performance.now()
       }
+    },
+    /** Pose sur le tapis les cartes de la main en cours ({ rank, suit, hidden }). */
+    setCards(dealerCards: TableCard[], playerCards: TableCard[]) {
+      const grp = tableObj?.userData.cards as THREE.Group | undefined
+      if (!grp) return
+      grp.children.slice().forEach(c => grp.remove(c))
+      const lay = (list: TableCard[], z: number) => list.forEach((c, i) => {
+        const m = new THREE.Mesh(cardGeo, new THREE.MeshBasicMaterial({ map: cardTexture(c) }))
+        m.rotation.set(-Math.PI / 2, 0, 0)
+        m.position.set((i - (list.length - 1) / 2) * 0.2, 0.895 + i * 0.002, z + (i % 2) * 0.02)
+        m.rotateZ((i - (list.length - 1) / 2) * 0.06)
+        grp.add(m)
+      })
+      lay(dealerCards, 0.32)
+      lay(playerCards, 0.78)
     },
     /** Fait tourner la vue d'un quart de tour (dir = 1 ou -1). */
     rotate(dir: number) { yawTarget += (dir * Math.PI) / 2 },

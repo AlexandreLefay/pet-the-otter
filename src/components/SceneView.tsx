@@ -21,6 +21,7 @@ export function SceneView() {
     const unsub = useGame.subscribe((st, prev) => {
       if (st.owned !== prev.owned) s.sync(st.owned)
       if (st.atTable !== prev.atTable) s.setTable(st.atTable)
+      if (st.tableCards !== prev.tableCards) s.setCards(st.tableCards.dealer, st.tableCards.player)
     })
     // Q / E (ou A / E sur clavier AZERTY) : tourner la vue
     const onKey = (e: KeyboardEvent) => {

@@ -90,6 +90,8 @@ interface GameState extends SavedState {
   ending: boolean
   /** assis à la table de blackjack (non sauvegardé) */
   atTable: boolean
+  /** cartes visibles sur la table (le panneau de jeu les publie, la scène les pose) */
+  tableCards: { dealer: { rank: string; suit: string; hidden?: boolean }[]; player: { rank: string; suit: string }[] }
   /** quiz vrai / faux en cours (non sauvegardé) */
   quiz: { id: string; until: number } | null
   /** ajoute un fait au carnet et l'affiche (« Le saviez-vous ? ») */
@@ -225,6 +227,7 @@ export const useGame = create<GameState>((set, get) => ({
   petTick: 0,
   ending: false,
   atTable: false,
+  tableCards: { dealer: [], player: [] },
   quiz: null,
 
   pet: (x, y) => {

@@ -16,6 +16,7 @@ export default function App() {
 
   // confirmation intégrée (pas de confirm() natif : bloqué dans certains cadres)
   const [confirming, setConfirming] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <div className="game">
@@ -27,17 +28,23 @@ export default function App() {
       <Mood />
       <Tabs active={tab} onChange={setTab} />
       {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : tab === 'maree' ? <TidePanel /> : tab === 'stats' ? <Stats /> : tab === 'carnet' ? <Notebook /> : <Shop />}
-      {confirming ? (
-        <div className="link-row">
-          <span>tout recommencer ?</span>
-          <button className="link-inline" onClick={() => { useGame.getState().reset(); setConfirming(false) }}>oui</button>
-          <button className="link-inline" onClick={() => setConfirming(false)}>non</button>
-        </div>
-      ) : (
-        <button className="link" onClick={() => setConfirming(true)}>recommencer</button>
-      )}
-      <SoundToggle />
-      <SaveMenu />
+      {/* sur mobile, ces liens se rangent dans un menu « ⋯ » en haut à droite */}
+      <button className="menu-btn" onClick={() => setMenuOpen(o => !o)} aria-expanded={menuOpen} aria-label="Menu">
+        {menuOpen ? '×' : '⋯'}
+      </button>
+      <div className={'extras' + (menuOpen ? ' extras--open' : '')}>
+        {confirming ? (
+          <div className="link-row">
+            <span>tout recommencer ?</span>
+            <button className="link-inline" onClick={() => { useGame.getState().reset(); setConfirming(false) }}>oui</button>
+            <button className="link-inline" onClick={() => setConfirming(false)}>non</button>
+          </div>
+        ) : (
+          <button className="link" onClick={() => setConfirming(true)}>recommencer</button>
+        )}
+        <SoundToggle />
+        <SaveMenu />
+      </div>
       <Quiz />
       <Toast />
       <Gains />

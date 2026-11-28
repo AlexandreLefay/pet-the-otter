@@ -582,7 +582,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Prop = { obj: THREE.Object3D; born: number; y0: number; splash: boolean; water: boolean; i: number }
   const props: Record<string, Prop[]> = {}
   let clock = 0 // ms, mis à jour par la boucle
-  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
+  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, phare: 1, jumeau: 1, grandmere: 1, sainte: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
 
   // ——— la bande : la première amie tient la patte de la mère ; les autres forment de petits
   // groupes (2 à 4) qui dérivent chacun à leur rythme autour d'elle, sans ordre précis
@@ -804,6 +804,38 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         tw.g.position.set(-0.02, 0, -0.2)
         tw.g.rotation.y = 0.25
         return { obj: tw.g, parent: mom.chest, water: false }
+      }
+      case 'sainte': {
+        // la sainte loutre : pelage presque blanc, grande mitre pointue, auréole qui flotte
+        const o = makeOtter(613, { fur: 0xd8d3ca, pale: 0xffffff, paw: 0xa9a49b, eyes: 'closed', extra: 'none', ear: 0.9, size: 1, feet: 0.35 })
+        const mitre = new THREE.Group()
+        mitre.position.set(0, 0.26, -0.03)
+        mitre.rotation.x = -0.22
+        o.head.add(mitre)
+        // la mitre : un grand chapeau en ogive, avec ses deux bandes et ses deux rubans
+        const shape = new THREE.Shape()
+        shape.moveTo(-0.27, 0)
+        shape.lineTo(0.27, 0)
+        shape.bezierCurveTo(0.31, 0.32, 0.17, 0.6, 0, 0.82)
+        shape.bezierCurveTo(-0.17, 0.6, -0.31, 0.32, -0.27, 0)
+        const mitreGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 3 })
+        mitreGeo.translate(0, 0, -0.1)
+        mitreGeo.computeVertexNormals()
+        add(mitreGeo, tone(0xfbf8f1), mitre, [0, 0, 0])
+        add(new THREE.BoxGeometry(0.07, 0.68, 0.27), tone(0x8f8a83), mitre, [0, 0.34, 0], null, null, false)
+        add(new THREE.BoxGeometry(0.58, 0.08, 0.27), tone(0x8f8a83), mitre, [0, 0.05, 0], null, null, false)
+        ;[-1, 1].forEach(sd => add(new THREE.BoxGeometry(0.05, 0.3, 0.02), tone(0x8f8a83), mitre, [sd * 0.12, -0.12, -0.13], [0.2, 0, sd * 0.15]))
+        // l'auréole, au-dessus de la mitre
+        const halo = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.022, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff }))
+        halo.add(new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.034, 6, 32), new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide })))
+        halo.rotation.x = Math.PI / 2 - 0.3
+        halo.position.set(0, 1.05, -0.06)
+        o.head.add(halo)
+        o.root.scale.setScalar(0.95)
+        o.root.userData.rig = o
+        o.root.userData.halo = halo
+        o.root.position.set(-2.0 * G, 0, -1.15 * G)
+        return { obj: o.root, parent: scene, water: true }
       }
       case 'grandmere': {
         // la grand-mère : pelage blanchi, lunettes rondes, châle, elle se berce à l'écart
@@ -1067,7 +1099,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     const r = renderer.domElement.getBoundingClientRect()
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
     raycaster.setFromCamera(ndc, cam)
-    const targets: THREE.Object3D[] = [otter, ...(props.amie ?? []).map(p => p.obj), ...(props.cousin ?? []).map(p => p.obj), ...(props.grandmere ?? []).map(p => p.obj)]
+    const targets: THREE.Object3D[] = [otter, ...(props.amie ?? []).map(p => p.obj), ...(props.cousin ?? []).map(p => p.obj), ...(props.grandmere ?? []).map(p => p.obj), ...(props.sainte ?? []).map(p => p.obj)]
     return raycaster.intersectObjects(targets, true).length > 0
   }
   const pet = (e: PointerEvent, strong: boolean) => {
@@ -1244,6 +1276,16 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
             rig.inner.scale.y = 1 + Math.sin(t / 470 + 1.3) * 0.04
             gaze(rig.head)
             rig.head.rotateX(Math.max(0, Math.sin(t / 2700 + 2)) * 0.25)
+            break
+          }
+          case 'sainte': {
+            // elle flotte, sereine, en tournant très lentement ; l'auréole monte et descend
+            const rig = pr.obj.userData.rig as OtterRig
+            pr.obj.position.set(-2.0 * G + Math.sin(t / 7000) * 0.3, Math.sin(t / 1200) * 0.04, -1.15 * G + Math.cos(t / 8000) * 0.2)
+            pr.obj.rotation.set(Math.sin(t / 1600) * 0.05, -0.6 + t / 20000, 0)
+            ;(pr.obj.userData.halo as THREE.Object3D).position.y = 1.05 + Math.sin(t / 700) * 0.04
+            pr.obj.updateMatrixWorld(true)
+            gaze(rig.head)
             break
           }
           case 'grandmere': {

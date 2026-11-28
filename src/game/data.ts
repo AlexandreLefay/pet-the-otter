@@ -64,6 +64,7 @@ export const UPGRADES: Upgrade[] = [
   { id: 'cousin', category: 'famille', name: 'Le cousin', desc: 'personne ne l’a invité · +250 /s', base: 60000, auto: 250, max: 1 },
   { id: 'jumeau', category: 'famille', name: 'Un deuxième bébé', desc: 'il dort à côté du premier · +150 /s', base: 80000, auto: 150, max: 1, requires: 'bebe', firstBuy: 'Un deuxième bébé ! La mère a deux pattes, c’est pile ce qu’il faut.' },
   { id: 'grandmere', category: 'famille', name: 'La grand-mère', desc: 'elle raconte des histoires · +900 /s', base: 300000, auto: 900, max: 1 },
+  { id: 'sainte', category: 'famille', name: 'La sainte loutre', desc: 'grande mitre, auréole, elle bénit la flaque · +2 500 /s', base: 1.5e6, auto: 2500, max: 1, firstBuy: 'La sainte loutre est arrivée, mitre en tête. Elle a béni le rocher. Il n’a rien dit.' },
   { id: 'voisins', category: 'famille', name: 'Les voisins', desc: 'ils ont leur propre flaque, juste à côté · +20 000 /s', base: 6e7, auto: 20000, minMarees: 2 },
   { id: 'colonie', category: 'famille', name: 'Toute une colonie', desc: 'on ne compte plus · +90 000 /s', base: 4e8, auto: 90000, minMarees: 3 },
 ]
@@ -178,6 +179,8 @@ export const STORY: Chapter[] = [
     text: 'Le moulin tourne jour et nuit. Personne ne sait ce qu’il moud. Les galets sont un peu plus ronds, peut-être.' },
   { id: 'perles', title: 'Le collier de perles', test: s => s.marees >= 2,
     text: 'Deuxième marée. La loutre range ses perles dans un coquillage. Elle les compte le soir, et se trompe à chaque fois.' },
+  { id: 'sainte', title: 'La sainte loutre', test: s => owns(s, 'sainte'),
+    text: 'Une loutre est arrivée avec un très grand chapeau et une auréole. Elle bénit les galets un par un. On n’a pas osé lui dire qu’il y en avait des millions.' },
   { id: 'voisins', title: 'Les voisins', test: s => owns(s, 'voisins'),
     text: 'Une autre flaque s’est formée juste à côté. Les voisins font la même chose, en moins bien. On les salue poliment.' },
   { id: 'legende', title: 'La légende', test: s => s.marees >= 3,

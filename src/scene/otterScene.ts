@@ -165,7 +165,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
   const spread: { o: THREE.Object3D; x: number; z: number }[] = []
   const spreadAdd = (o: THREE.Object3D) => { spread.push({ o, x: o.position.x, z: o.position.z }) }
   const pools: THREE.Mesh[] = []
-  // ——— eau vivante : vaguelettes à l'encre qui dérivent, reflets blancs qui scintillent.
+  // ——— eau vivante : reflets blancs qui scintillent, contour à l'encre le long des berges.
   // Calculé dans le shader à partir de la position dans le monde : toutes les surfaces d'eau
   // (mare, flaques, rivière, ruisseau de la cascade, mare des voisins) bougent ensemble.
   const waterTime = { value: 0 }
@@ -176,12 +176,6 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
       sh.vertexShader = 'varying vec3 vWaterPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvWaterPos = (modelMatrix * vec4(transformed, 1.0)).xyz;')
       sh.fragmentShader = 'uniform float uTime;\nvarying vec3 vWaterPos;\n' + sh.fragmentShader.replace('#include <dithering_fragment>', `
         vec2 p = vWaterPos.xz;
-        // motifs clairs et doux, comme une eau en cel-shading : des bandes sinueuses légèrement
-        // plus claires qui se déforment lentement (pas de trait d'encre)
-        vec2 q = p + vec2(sin(p.y * 1.3 + uTime * 0.35), cos(p.x * 1.1 - uTime * 0.3)) * 0.45;
-        float cells = sin(q.x * 2.2 + uTime * 0.25) * sin(q.y * 2.6 - uTime * 0.2);
-        float band = smoothstep(0.55, 0.62, cells) - smoothstep(0.78, 0.86, cells);
-        gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.97, 0.96, 0.94), band * 0.45);
         // reflets blancs qui s'allument et s'éteignent
         float g = sin(p.x * 7.0 + uTime * 1.2) * sin(p.y * 6.0 - uTime * 0.9) * sin(uTime * 0.7 + p.x * 0.8 + p.y * 1.3);
         gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0), smoothstep(0.82, 0.95, g) * 0.85);

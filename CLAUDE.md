@@ -1,4 +1,4 @@
-# Pet the otter (« Loutre. ») — contexte du projet
+# Pet the otter — contexte du projet
 
 Jeu web incrémental (clicker) : on caresse une loutre qui flotte sur le dos dans une flaque ;
 chaque caresse rapporte des **galets** (monnaie) qu'on dépense en améliorations. Ton absurde.

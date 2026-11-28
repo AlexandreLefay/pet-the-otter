@@ -10,7 +10,7 @@ export function Logo() {
     <div className="logo">
       <LogoMark />
       <div className="logo__text">
-        <div className="logo__title">LOUTRE.</div>
+        <div className="logo__title">PET THE OTTER.</div>
         <div className="logo__sub">plateau n°1 · la flaque</div>
       </div>
     </div>

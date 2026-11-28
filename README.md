@@ -1,4 +1,4 @@
-# Loutre.
+# Pet the otter
 
 Jeu incrémental : on caresse une loutre qui flotte dans une flaque.
 

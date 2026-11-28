@@ -33,7 +33,7 @@ Fait : scène 3D complète, boucle de jeu, 4 onglets (Boutique, Succès, Histoir
 confirmation « recommencer » intégrée, mobile de base, curseur main dessinée (moufle avec le gant),
 logo (`public/logo.svg`, composant `LogoMark` dans Boil.tsx, aussi utilisé en favicon).
 Chaque achat est visible dans la scène : nœud papillon et lunettes sur la loutre, plume qui la chatouille,
-galets qu'elle jongle, rochers, nénuphars, vapeur du bain, rivière, amies en radeau (10 affichées au plus) qui se
+galets qu'elle jongle, rochers, nénuphars, vapeur du bain, rivière, amies en petits groupes libres (24 affichées au plus) dont la première se
 tiennent la patte, cousin à chapeau. Toutes les loutres se caressent. La mare grandit et la caméra recule avec
 la famille (`growthFor` / `applyGrowth`, variable G). Boutique sur un seul écran, dans la colonne de droite (`--side`).
 Déployé sur GitHub Pages à chaque push sur `main` : https://alexandrelefay.github.io/pet-the-otter/

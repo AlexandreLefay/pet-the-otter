@@ -30,12 +30,18 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   el.appendChild(renderer.domElement)
 
   const scene = new THREE.Scene()
-  const FR = 11.8
+  const FR = 11.2
   /** Taille de la mare : 1 au départ, grandit avec la famille (voir growthFor). */
   let G = 1
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200)
-  cam.position.set(14, 14, 14)
-  cam.lookAt(0, 0, 0)
+  // visée un peu en avant du centre : le coin avant du plateau (et ses bordures) reste
+  // visible en bas de l'écran, le reste du plateau déborde et remplit toute la zone de jeu
+  const AIM = 0.6
+  const aimCam = () => {
+    cam.position.set(14 + AIM * G, 14, 14 + AIM * G)
+    cam.lookAt(AIM * G, 0, AIM * G)
+  }
+  aimCam()
   const resize = () => {
     const W = el.clientWidth, H = el.clientHeight
     if (!W || !H) return
@@ -44,6 +50,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     // Sur écran étroit (mobile) on élargit le cadrage pour garder toute la flaque.
     // la caméra recule au même rythme que le plateau grandit : il reste entier à l'écran
     const zoom = FR * G
+    aimCam()
     const fr = as < 1 ? zoom * Math.min(1.9, 1.15 / as) : zoom
     cam.left = (-fr * as) / 2
     cam.right = (fr * as) / 2
@@ -84,12 +91,13 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   scene.add(plateau)
   const slabMat = new THREE.MeshToonMaterial({ color: 0xd7d2c8, gradientMap: grad })
   const topMat = new THREE.MeshToonMaterial({ color: 0xf3f0ea, gradientMap: grad })
-  const slabGeo = new RoundedBoxGeometry(10.4, 0.8, 8.6, 4, 0.28)
+  const SLAB = 14
+  const slabGeo = new RoundedBoxGeometry(SLAB, 0.8, SLAB, 4, 0.3)
   const slab = new THREE.Mesh(slabGeo, slabMat)
   slab.position.y = -0.42
   slab.receiveShadow = true
   plateau.add(slab)
-  const top = new THREE.Mesh(new RoundedBoxGeometry(10.36, 0.06, 8.56, 4, 0.03), topMat)
+  const top = new THREE.Mesh(new RoundedBoxGeometry(SLAB - 0.04, 0.06, SLAB - 0.04, 4, 0.03), topMat)
   top.position.y = -0.03
   top.receiveShadow = true
   plateau.add(top)
@@ -99,17 +107,17 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   slabInk.scale.set(1.006, 1.05, 1.008)
   plateau.add(slabInk)
   // quelques traits de terre sur la tranche
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * Math.PI * 2
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.4 + (i % 3) * 0.2, 0.018), new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.45 }))
-    const onX = Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) * 1.2
-    if (onX) { m.position.set(Math.sign(Math.cos(a)) * 5.21, -0.35 - (i % 3) * 0.13, Math.sin(a) * 3.2); m.rotation.y = Math.PI / 2 }
-    else { m.position.set(Math.cos(a) * 4.0, -0.35 - (i % 3) * 0.13, Math.sign(Math.sin(a)) * 4.31) }
+  // quelques traits de terre sur les deux tranches visibles (côtés +x et +z)
+  for (let i = 0; i < 18; i++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.5 + (i % 3) * 0.3, 0.02), new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.45 }))
+    const along = -SLAB / 2 + 1 + ((i * 7.3) % (SLAB - 2))
+    if (i % 2) { m.position.set(SLAB / 2 + 0.01, -0.3 - (i % 3) * 0.15, along); m.rotation.y = Math.PI / 2 }
+    else m.position.set(along, -0.3 - (i % 3) * 0.15, SLAB / 2 + 0.01)
     plateau.add(m)
   }
   // capteur d'ombres posé sur le plateau (et sur l'eau) : des ombres franches, comme les
   // ombres dures de l'interface, quelle que soit la lumière ambiante
-  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(10.4, 8.6), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
+  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(SLAB, SLAB), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
   shadowCatcher.rotation.x = -Math.PI / 2
   shadowCatcher.position.y = 0.03
   shadowCatcher.receiveShadow = true
@@ -323,7 +331,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     }
     if (look.extra === 'mohawk') [-0.08, 0, 0.08].forEach((z, k) => add(new THREE.ConeGeometry(0.05, 0.16, 8), paw, head, [0, 0.33 - Math.abs(z), z - 0.05 * k], [-0.3 + k * 0.3, 0, 0]))
     const rnd = seeded(seed + 3)
-    for (let i = 0; i < (light ? 4 : 14); i++) {
+    for (let i = 0; i < (light ? 0 : 14); i++) {
       // touffes sur le front et le pourtour du visage
       const a = -0.9 + rnd() * 1.8, ph = 0.35 + rnd() * 0.5
       const n = new THREE.Vector3(Math.sin(a) * Math.sin(ph * 2), Math.cos(a) * 0.9, 0.2 + rnd() * 0.25).normalize()
@@ -395,7 +403,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     if (look.extra === 'pebble') addPeb(1, stoneTones[0], chest, [0.05, 0.06, 0], [0, 0.4, 0], [0.8, 0.5, 0.7])
 
     const rnd = seeded(seed)
-    for (let i = 0; i < (light ? 8 : 24); i++) {
+    for (let i = 0; i < (light ? 4 : 24); i++) {
       const u = -0.62 + rnd() * 1.1, th = (rnd() - 0.5) * 2.2
       const r = 0.45 - Math.abs(u) * 0.12
       const n = new THREE.Vector3(0, Math.cos(th), Math.sin(th) * 0.92).normalize()
@@ -474,10 +482,85 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Prop = { obj: THREE.Object3D; born: number; y0: number; splash: boolean; water: boolean; i: number }
   const props: Record<string, Prop[]> = {}
   let clock = 0 // ms, mis à jour par la boucle
-  const CAP: Record<string, number> = { rocher: 4, nenuphar: 6, galet: 3, amie: 10, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 3, parasol: 2, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
+  const CAP: Record<string, number> = { rocher: 4, nenuphar: 6, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 3, parasol: 2, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
 
-  // places du radeau autour de la mère (repère de la mère : +x vers sa tête)
-  const RAFT: [number, number][] = [[-0.15, 1.05], [-0.15, -1.05], [-2.7, 0.65], [-2.7, -0.65], [2.6, 0.7], [2.6, -0.7], [-0.15, 2.5], [-0.15, -2.5], [-2.7, 1.95], [-2.7, -1.95]]
+  // ——— la bande : la première amie tient la patte de la mère ; les autres forment de petits
+  // groupes (2 à 4) qui dérivent chacun à leur rythme autour d'elle, sans ordre précis
+  const GROUP_SIZES = [2, 3, 2, 4, 3, 2, 4, 3, 2, 3]
+  const groupOf = (i: number) => {
+    if (i === 0) return -1
+    let k = i - 1, g = 0
+    while (k >= GROUP_SIZES[g % GROUP_SIZES.length]) { k -= GROUP_SIZES[g % GROUP_SIZES.length]; g++ }
+    return g
+  }
+  type Swim = { x: number; z: number; vx: number; vz: number; h: number; ox: number; oz: number; next: number }
+  const swims = new Map<THREE.Object3D, Swim>()
+  const anchors: { x: number; z: number; tx: number; tz: number; next: number }[] = []
+  const rnd2 = seeded(99)
+  const updateBand = (t: number, dt: number) => {
+    const band = props.amie ?? []
+    if (!band.length) return
+    const rx = 3.0 * G, rz = 2.2 * G
+    // les points de ralliement des groupes se promènent autour de la mère
+    const nGroups = groupOf(band.length - 1) + 1
+    while (anchors.length < nGroups) anchors.push({ x: NaN, z: NaN, tx: 0, tz: 0, next: 0 })
+    anchors.forEach((a, g) => {
+      if (t > a.next) {
+        const ang = rnd2() * Math.PI * 2, r = (1.8 + rnd2() * 1.6) * Math.sqrt(G)
+        a.tx = otter.position.x + Math.cos(ang) * r
+        a.tz = otter.position.z + Math.sin(ang) * r * 0.8
+        a.next = t + 7000 + rnd2() * 8000 + g * 500
+        if (Number.isNaN(a.x)) { a.x = a.tx; a.z = a.tz } // nouveau groupe : il apparaît directement à sa place
+      }
+      a.x += (a.tx - a.x) * Math.min(1, dt * 0.25)
+      a.z += (a.tz - a.z) * Math.min(1, dt * 0.25)
+    })
+    band.forEach((pr, i) => {
+      const g = groupOf(i)
+      let st = swims.get(pr.obj)
+      // cible : à côté de la mère (patte dans la patte), ou dans son petit groupe
+      let tx: number, tz: number
+      if (g < 0) {
+        const off = new THREE.Vector3(-0.1, 0, 0.98).applyAxisAngle(up, heading)
+        tx = otter.position.x + off.x
+        tz = otter.position.z + off.z
+      } else {
+        if (!st || t > st.next) {
+          const ang = rnd2() * Math.PI * 2, r = 0.3 + rnd2() * 0.6
+          if (st) { st.ox = Math.cos(ang) * r; st.oz = Math.sin(ang) * r; st.next = t + 4000 + rnd2() * 6000 }
+          else st = { x: 0, z: 0, vx: 0, vz: 0, h: rnd2() * 6.28, ox: Math.cos(ang) * r, oz: Math.sin(ang) * r, next: t + 4000 + rnd2() * 6000 }
+        }
+        tx = anchors[g].x + st.ox
+        tz = anchors[g].z + st.oz
+      }
+      if (!st) st = { x: tx, z: tz, vx: 0, vz: 0, h: heading, ox: 0, oz: 0, next: Infinity }
+      if (!swims.has(pr.obj)) { st.x = tx; st.z = tz; swims.set(pr.obj, st) }
+      // attirée par sa cible, repoussée par les loutres trop proches
+      let ax = (tx - st.x) * 0.7, az = (tz - st.z) * 0.7
+      const push = (x: number, z: number, minD: number) => {
+        const dx = st!.x - x, dz = st!.z - z, d = Math.hypot(dx, dz) || 0.001
+        if (d < minD) { ax += (dx / d) * (minD - d) * 4; az += (dz / d) * (minD - d) * 4 }
+      }
+      push(otter.position.x, otter.position.z, g < 0 ? 0.9 : 1.15)
+      band.forEach((o, j) => { if (j !== i) { const so = swims.get(o.obj); if (so) push(so.x, so.z, groupOf(j) === g ? 1.0 : 1.3) } })
+      st.vx = (st.vx + ax * dt) * (1 - Math.min(0.9, dt * 1.6))
+      st.vz = (st.vz + az * dt) * (1 - Math.min(0.9, dt * 1.6))
+      const sp = Math.hypot(st.vx, st.vz)
+      if (sp > 0.55) { st.vx *= 0.55 / sp; st.vz *= 0.55 / sp }
+      st.x += st.vx * dt
+      st.z += st.vz * dt
+      // on reste dans la mare
+      const e = (st.x / rx) ** 2 + (st.z / rz) ** 2
+      if (e > 1) { const k = 1 / Math.sqrt(e); st.x *= k; st.z *= k }
+      // elle se tourne doucement dans le sens où elle dérive (la voisine de la mère reste alignée)
+      const want = g < 0 ? heading : sp > 0.06 ? Math.atan2(-st.vz, st.vx) : st.h
+      let da = want - st.h
+      da = Math.atan2(Math.sin(da), Math.cos(da))
+      st.h += da * Math.min(1, dt * (g < 0 ? 3 : 0.8))
+      pr.obj.position.x = st.x
+      pr.obj.position.z = st.z
+    })
+  }
   const PARASOLS: [number, number][] = [[-3.7, -1.9], [3.5, 2.1]]
   const paperMat = toon(0xffffff), shellMat = toon(0xefe9dd), algaeMat = toon(0xb9b4aa)
   // bateau en papier : coque trapézoïdale et voile triangulaire, extrudées
@@ -728,7 +811,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'riviere': {
         // un bras de rivière qui arrive par l'arrière et se jette dans la flaque
         const sh = new THREE.Shape()
-        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-5.15, 0, -3.95), new THREE.Vector3(-4.2, 0, -3.2), new THREE.Vector3(-3.1, 0, -2.3), new THREE.Vector3(-1.8, 0, -1.2)])
+        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-6.95, 0, -5.0), new THREE.Vector3(-5.2, 0, -3.8), new THREE.Vector3(-3.4, 0, -2.5), new THREE.Vector3(-1.8, 0, -1.2)])
         const pts = path.getPoints(40)
         const side = (sgn: number) => pts.map((q, k) => {
           const tan = path.getTangent(k / 40)
@@ -760,12 +843,12 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         const o = makeOtter(11 + i * 5, look, i >= 2)
         o.root.scale.setScalar(0.78 * look.size)
         // au-delà des quatre premières, pas d'ombre portée : la mare reste fluide
-        if (i >= 4) o.root.traverse(c => { c.castShadow = false })
+        if (i >= 6) o.root.traverse(c => { c.castShadow = false })
         o.root.userData.rig = o
         // les pattes qui se tiennent (dessinées entre la mère et l'amie)
         const link = new THREE.Mesh(linkGeo, pawMat)
         link.add(new THREE.Mesh(linkGeo, inkMat))
-        link.visible = i < 2
+        link.visible = i === 0
         scene.add(link)
         o.root.userData.link = link
         return { obj: o.root, parent: scene, water: true }
@@ -788,7 +871,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   let gTarget = 1
   /** La mare grandit avec la famille (plafonnée avec le nombre d'amies affichées). */
   const growthFor = (owned: Record<string, number>) =>
-    1 + 0.1 * Math.min(CAP.amie, owned.amie || 0) + ((owned.cousin || 0) > 0 ? 0.08 : 0) + ((owned.grandmere || 0) > 0 ? 0.08 : 0) + ((owned.voisins || 0) > 0 ? 0.12 : 0) + Math.min(0.3, 0.03 * (owned.colonie || 0)) + ((owned.riviere || 0) > 0 ? 0.1 : 0)
+    1 + 0.065 * Math.min(CAP.amie, owned.amie || 0) + ((owned.cousin || 0) > 0 ? 0.08 : 0) + ((owned.grandmere || 0) > 0 ? 0.08 : 0) + ((owned.voisins || 0) > 0 ? 0.12 : 0) + Math.min(0.3, 0.03 * (owned.colonie || 0)) + ((owned.riviere || 0) > 0 ? 0.1 : 0)
   const applyGrowth = () => {
     spread.forEach(({ o, x, z }) => o.position.set(x * G, o.position.y, z * G))
     pools.forEach(m => m.scale.set(G, G, 1))
@@ -897,18 +980,11 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const wp = new THREE.Vector3(), wq = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0)
   let tickleUntil = 0, nextTickle = 4000
   const animateProps = (t: number, dt: number) => {
+    updateBand(t, dt)
     for (const kind in props) {
       for (const pr of props[kind]) {
         // arrivée : chute avec rebond, puis grande onde au contact de l'eau
         const k = (t - pr.born) / 650
-        if (k < 1 && kind === 'amie' && !pr.obj.userData.placed) {
-          // une nouvelle amie tombe directement à sa place dans le radeau
-          const [ox, oz] = RAFT[pr.i]
-          const off = new THREE.Vector3(ox, 0, oz).applyAxisAngle(up, heading).add(otter.position)
-          pr.obj.position.x = off.x
-          pr.obj.position.z = off.z
-          pr.obj.userData.placed = true
-        }
         if (k < 1) {
           const b = 1 - Math.abs(Math.cos(k * Math.PI * 1.5)) * (1 - k) // rebond amorti
           pr.obj.position.y = pr.y0 + (1 - b) * 2.2
@@ -1016,18 +1092,12 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           case 'amie': {
             // la bande flotte en radeau autour de la mère, et se tient la patte
             const rig = pr.obj.userData.rig as OtterRig
-            const side = pr.i === 0 ? 1 : -1
-            const [ox, oz] = RAFT[pr.i]
-            const off = new THREE.Vector3(ox, 0, oz)
-            off.applyAxisAngle(up, heading).add(otter.position)
-            // première image : directement à sa place, ensuite elle suit la mère avec un peu de retard
-            const follow = pr.obj.userData.placed ? Math.min(1, dt * 1.5) : 1
-            pr.obj.userData.placed = true
-            pr.obj.position.x += (off.x - pr.obj.position.x) * follow
-            pr.obj.position.z += (off.z - pr.obj.position.z) * follow
+            // position et cap : calculés par updateBand (petits groupes qui dérivent)
+            const side = 1
+            const sw = swims.get(pr.obj)
             const hk = Math.max(0, 1 - (performance.now() - (pr.obj.userData.hopAt ?? -1e9)) / 330)
             pr.obj.position.y = Math.sin(t / 900 + pr.i * 1.7) * 0.03 + Math.sin(hk * Math.PI) * 0.14
-            pr.obj.rotation.set(Math.sin(t / 1300 + pr.i) * 0.06, heading + Math.sin(t / 2100 + pr.i) * 0.12, 0)
+            pr.obj.rotation.set(Math.sin(t / 1300 + pr.i) * 0.06, (sw?.h ?? heading) + Math.sin(t / 2100 + pr.i) * 0.08, 0)
             pr.obj.updateMatrixWorld(true)
             gaze(rig.head)
             const link = pr.obj.userData.link as THREE.Mesh

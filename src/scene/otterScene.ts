@@ -193,7 +193,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const toeGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.16, 4)
   const pawGeo = new THREE.SphereGeometry(0.085, 14, 10)
   const armGeo = new THREE.CapsuleGeometry(0.07, 0.16, 6, 12)
-  const headGeo = new THREE.SphereGeometry(0.33, 28, 20)
+  const headGeo = new THREE.SphereGeometry(0.34, 28, 20)
   const muzzleGeo = new THREE.SphereGeometry(0.12, 20, 14)
   const earGeo = new THREE.SphereGeometry(0.07, 12, 10)
   const noseGeo = new THREE.SphereGeometry(0.075, 14, 10)
@@ -214,7 +214,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Eyes = 'closed' | 'open' | 'wink' | 'round'
   type Extra = 'none' | 'flower' | 'scarf' | 'pebble' | 'mohawk' | 'patch'
   interface Look { fur: number; pale: number; paw: number; eyes: Eyes; extra: Extra; ear: number; size: number; feet: number }
-  const MOM_LOOK: Look = { fur: 0x99948c, pale: 0xfcf9f2, paw: 0x75716a, eyes: 'closed', extra: 'none', ear: 1, size: 1, feet: 0.5 }
+  const MOM_LOOK: Look = { fur: 0x99948c, pale: 0xfcf9f2, paw: 0x75716a, eyes: 'open', extra: 'none', ear: 1, size: 1, feet: 0.5 }
   const tones = new Map<number, THREE.Material>()
   const tone = (c: number) => {
     let m = tones.get(c)
@@ -229,7 +229,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       fur,
       pale: pick(r, [0xfcf9f2, 0xf0ebe1, 0xf6f0e4, 0xe6e1d7] as const),
       paw: fur - 0x222222,
-      eyes: pick(r, ['closed', 'closed', 'open', 'wink', 'round'] as const),
+      eyes: pick(r, ['open', 'open', 'open', 'closed', 'wink', 'round'] as const),
       extra: pick(r, ['none', 'none', 'flower', 'scarf', 'pebble', 'mohawk', 'patch'] as const),
       ear: 0.8 + r() * 0.45,
       size: 0.85 + r() * 0.25,
@@ -237,6 +237,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     }
   }
   const dotGeo = new THREE.SphereGeometry(0.036, 10, 8)
+  const eyeGeo = new THREE.SphereGeometry(0.052, 14, 10)
+  const glintMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
   const ringGeo = new THREE.TorusGeometry(0.042, 0.009, 4, 14)
   const petalGeo = new THREE.SphereGeometry(0.055, 12, 8)
   const feather = toon(0xffffff)
@@ -249,45 +251,49 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     const head = new THREE.Group()
     parent.add(head)
     const mat = tone(look.pale), paw = tone(look.paw)
-    add(headGeo, mat, head, [0, 0, 0], null, [1.1, 0.86, 1])
+    // tête ronde et duveteuse, tournée vers nous
+    add(headGeo, mat, head, [0, 0, 0], null, [1.06, 0.96, 0.94])
     ;[-1, 1].forEach(sd => {
-      // coussinets de moustaches, gonflés, qui se touchent sous la truffe
-      add(muzzleGeo, mat, head, [sd * 0.07, -0.075, 0.25], null, [1.05, 0.8, 0.78])
-      // petites oreilles rondes, basses sur les côtés
-      add(earGeo, paw, head, [sd * 0.3, 0.12, -0.07], null, [0.75 * look.ear, 0.7 * look.ear, 0.5])
-      // les yeux : petits et écartés ; fermés « ‿ », ouverts « • », un clin d'œil, ou ronds d'étonnement
-      const eye: V3 = [sd * 0.13, 0.09, 0.275]
+      // petites oreilles rondes, en haut sur les côtés
+      add(earGeo, paw, head, [sd * 0.27, 0.23, -0.01], null, [0.9 * look.ear, 0.9 * look.ear, 0.6])
+      // coussinets de moustaches, ronds, sous la truffe, avec leurs petits points
+      add(muzzleGeo, mat, head, [sd * 0.065, -0.105, 0.255], null, [1, 0.78, 0.75])
+      ;[[0.1, -0.085], [0.13, -0.115], [0.085, -0.13]].forEach(([x, y]) =>
+        add(dotGeo, black, head, [sd * x, y, 0.335], null, [0.28, 0.28, 0.28], false))
+      // les yeux : grands, ronds et brillants (ou fermés, clin d'œil, étonnés)
+      const eye: V3 = [sd * 0.125, 0.055, 0.29]
       const kind = look.eyes === 'wink' ? (sd < 0 ? 'closed' : 'open') : look.eyes
-      if (kind === 'closed') add(arc, black, head, eye, [0, 0, Math.PI], [0.95, 0.6, 1], false)
-      else if (kind === 'open') add(dotGeo, black, head, eye, null, [0.8, 0.95, 0.6], false)
+      if (kind === 'closed') add(arc, black, head, [eye[0], eye[1] - 0.01, eye[2] + 0.01], [0, 0, Math.PI], [1.05, 0.7, 1], false)
       else {
-        add(ringGeo, black, head, eye, null, [0.85, 0.85, 1], false)
-        add(dotGeo, black, head, eye, null, [0.4, 0.4, 0.4], false)
+        add(eyeGeo, black, head, eye, null, kind === 'round' ? [1.15, 1.15, 0.7] : [1, 1.05, 0.7], false)
+        add(dotGeo, glintMat, head, [eye[0] + 0.018, eye[1] + 0.022, eye[2] + 0.03], null, [0.38, 0.38, 0.38], false)
       }
-      add(arc, black, head, [sd * 0.035, -0.155, 0.27], [0, 0, Math.PI], [0.65, 0.65, 1], false)
-      ;[0.025, -0.02].forEach(dy => {
-        const w = add(whiskerGeo, black, head, [sd * 0.21, -0.08 + dy, 0.27], null, null, false)
-        w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(sd, dy * 3 - 0.08, 0.15).normalize())
+      // la bouche : un petit « w » sous les coussinets
+      add(arc, black, head, [sd * 0.032, -0.165, 0.275], [0, 0, Math.PI], [0.6, 0.6, 1], false)
+      ;[0.02, -0.025].forEach(dy => {
+        const w = add(whiskerGeo, black, head, [sd * 0.2, -0.1 + dy, 0.27], null, null, false)
+        w.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(sd, dy * 3 - 0.06, 0.12).normalize())
       })
     })
-    // la truffe : large et sombre, posée en haut des coussinets
-    add(noseGeo, black, head, [0, -0.005, 0.325], null, [1.55, 0.95, 0.75], false)
-    if (look.extra === 'patch') add(new THREE.SphereGeometry(0.1, 14, 10), paw, head, [0.13, 0.09, 0.235], null, [1, 0.85, 0.5])
+    // grosse truffe noire, arrondie, avec un reflet
+    add(noseGeo, black, head, [0, -0.025, 0.315], null, [1.45, 1.1, 0.85], false)
+    add(dotGeo, glintMat, head, [-0.03, 0.0, 0.375], null, [0.5, 0.3, 0.3], false)
+    if (look.extra === 'patch') add(new THREE.SphereGeometry(0.1, 14, 10), paw, head, [0.125, 0.06, 0.24], null, [1, 0.9, 0.5])
     if (look.extra === 'flower') {
       // une fleur glissée derrière l'oreille
       const f = new THREE.Group()
-      f.position.set(-0.27, 0.24, 0.04)
+      f.position.set(-0.25, 0.25, 0.08)
       head.add(f)
       for (let k = 0; k < 5; k++) add(petalGeo, feather, f, [Math.cos(k * 1.26) * 0.07, Math.sin(k * 1.26) * 0.07, 0], null, [1, 1, 0.6])
       add(petalGeo, stoneTones[2], f, [0, 0, 0.02], null, [0.6, 0.6, 0.6])
     }
-    if (look.extra === 'mohawk') [-0.08, 0, 0.08].forEach((z, k) => add(new THREE.ConeGeometry(0.05, 0.16, 8), paw, head, [0, 0.31 - Math.abs(z), z - 0.05 * k], [-0.3 + k * 0.3, 0, 0]))
+    if (look.extra === 'mohawk') [-0.08, 0, 0.08].forEach((z, k) => add(new THREE.ConeGeometry(0.05, 0.16, 8), paw, head, [0, 0.33 - Math.abs(z), z - 0.05 * k], [-0.3 + k * 0.3, 0, 0]))
     const rnd = seeded(seed + 3)
-    for (let i = 0; i < (light ? 0 : 10); i++) {
-      const th = rnd() * Math.PI * 2, ph = rnd() * 1.4
-      const n = new THREE.Vector3(Math.cos(th) * Math.sin(ph), Math.cos(ph), Math.sin(th) * Math.sin(ph))
-      if (n.z > 0.3) continue
-      tuft(head, n.clone().multiplyScalar(0.3).multiply(new THREE.Vector3(1.1, 0.86, 1)), n, Math.PI + (rnd() - 0.5))
+    for (let i = 0; i < (light ? 4 : 14); i++) {
+      // touffes sur le front et le pourtour du visage
+      const a = -0.9 + rnd() * 1.8, ph = 0.35 + rnd() * 0.5
+      const n = new THREE.Vector3(Math.sin(a) * Math.sin(ph * 2), Math.cos(a) * 0.9, 0.2 + rnd() * 0.25).normalize()
+      tuft(head, n.clone().multiplyScalar(0.33).multiply(new THREE.Vector3(1.06, 0.96, 0.94)), n, Math.PI + (rnd() - 0.5) * 0.6)
     }
     return head
   }
@@ -346,7 +352,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     body.add(chest)
 
     const head = makeHead(body, look, seed, light)
-    head.position.set(0.95, 0.36, 0)
+    head.position.set(0.97, 0.4, 0)
     if (look.extra === 'scarf') {
       // écharpe tricotée autour du cou
       const sc = add(new THREE.TorusGeometry(0.27, 0.07, 8, 24), tone(0xd6d1c6), body, [0.84, 0.36, 0], [0, Math.PI / 2, 0.3])
@@ -488,7 +494,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'lunettes': {
         ;[-1, 1].forEach(sd => add(lensGeo, black, g, [sd * 0.13, 0, 0], [Math.PI / 2, 0, 0], [0.9, 1, 0.9], false))
         add(new THREE.BoxGeometry(0.08, 0.02, 0.02), black, g, [0, 0.02, 0], null, null, false)
-        g.position.set(0, 0.09, 0.29)
+        g.position.set(0, 0.06, 0.31)
         return { obj: g, parent: head, water: false }
       }
       case 'plume': {
@@ -518,8 +524,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           const a = (k / 7) * Math.PI * 2
           add(new THREE.ConeGeometry(0.04, 0.17, 6), algaeMat, g, [Math.cos(a) * 0.2, 0.08, Math.sin(a) * 0.2], [Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25])
         }
-        g.position.set(0, 0.29, -0.06)
-        g.rotation.x = -0.45
+        g.position.set(0, 0.31, -0.04)
+        g.rotation.x = -0.3
         return { obj: g, parent: head, water: false }
       }
       case 'collier': {
@@ -584,8 +590,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'grandmere': {
         // la grand-mère : pelage blanchi, lunettes rondes, châle, elle se berce à l'écart
         const o = makeOtter(77, { fur: 0xc9c4ba, pale: 0xfefcf7, paw: 0x9a958c, eyes: 'closed', extra: 'scarf', ear: 0.9, size: 1, feet: 0.3 })
-        ;[-1, 1].forEach(sd => add(ringGeo, black, o.head, [sd * 0.13, 0.09, 0.3], null, [2, 2, 1], false))
-        add(new THREE.BoxGeometry(0.06, 0.012, 0.012), black, o.head, [0, 0.1, 0.31], null, null, false)
+        ;[-1, 1].forEach(sd => add(ringGeo, black, o.head, [sd * 0.125, 0.055, 0.315], null, [2, 2, 1], false))
+        add(new THREE.BoxGeometry(0.06, 0.012, 0.012), black, o.head, [0, 0.065, 0.33], null, null, false)
         o.root.scale.setScalar(0.85)
         o.root.userData.rig = o
         o.root.position.set(-2.4 * G, 0, 1.9 * G)
@@ -630,7 +636,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         chain.position.set(0.1, -0.17, -0.02)
         chain.rotation.z = 0.5
         g.add(chain)
-        g.position.set(0.13, 0.09, 0.3)
+        g.position.set(0.125, 0.055, 0.315)
         return { obj: g, parent: head, water: false }
       }
       case 'moulin': {
@@ -734,8 +740,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         const o = makeOtter(41, { ...lookFor(41), extra: 'none', eyes: 'open' })
         o.root.scale.setScalar(0.9)
         // le chapeau du cousin
-        add(new THREE.CylinderGeometry(0.15, 0.17, 0.22, 20), bowMat, o.head, [0, 0.38, -0.02], [-0.2, 0, 0.15])
-        add(new THREE.CylinderGeometry(0.28, 0.28, 0.03, 24), bowMat, o.head, [0, 0.28, 0], [-0.2, 0, 0.15])
+        add(new THREE.CylinderGeometry(0.15, 0.17, 0.22, 20), bowMat, o.head, [0, 0.42, -0.02], [-0.15, 0, 0.15])
+        add(new THREE.CylinderGeometry(0.28, 0.28, 0.03, 24), bowMat, o.head, [0, 0.31, 0], [-0.15, 0, 0.15])
         o.root.userData.rig = o
         o.root.position.set(2.6 * G, 0, -1.6 * G)
         return { obj: o.root, parent: scene, water: true }
@@ -826,12 +832,12 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   // ——— boucle
   const camDir = new THREE.Vector3(12, 10.5, 12).normalize().add(new THREE.Vector3(0, 0.35, 0)).normalize()
   const gUp = new THREE.Vector3(), gFwd = new THREE.Vector3(), gq = new THREE.Quaternion(), gp = new THREE.Vector3()
-  /** Oriente une tête : vers le ciel (le dos sur l'eau), un peu vers l'avant, et à moitié vers la caméra. */
+  /** Oriente une tête : face à nous, légèrement inclinée vers le ciel et vers l'avant. */
   const gaze = (h: THREE.Object3D) => {
     h.parent!.getWorldQuaternion(gq)
     gUp.set(0, 1, 0).applyQuaternion(gq)
     gFwd.set(1, 0, 0).applyQuaternion(gq)
-    const dir = gUp.multiplyScalar(0.4).addScaledVector(gFwd, 0.2).addScaledVector(camDir, 0.9).normalize()
+    const dir = gUp.multiplyScalar(0.18).addScaledVector(gFwd, 0.08).addScaledVector(camDir, 1).normalize()
     h.lookAt(h.getWorldPosition(gp).add(dir))
   }
   const pos = new THREE.Vector2(0, 0), tgt = new THREE.Vector2(0, 0)

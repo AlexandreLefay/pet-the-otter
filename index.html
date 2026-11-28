@@ -8,8 +8,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <title>Loutre.</title>
+    <style>
+      /* écran de chargement : affiché avant même que le JavaScript n'arrive (cf. src/boot.ts) */
+      .boot { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #faf9f6; color: #1b1a18; font-family: 'IBM Plex Mono', monospace; transition: opacity 450ms ease; }
+      .boot--done { opacity: 0; pointer-events: none; }
+      .boot__mark { width: 96px; height: 96px; animation: boot-float 2.4s ease-in-out infinite; }
+      .boot__title { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 30px; letter-spacing: -0.01em; }
+      .boot__bar { width: 220px; height: 12px; border: 2px solid #1b1a18; box-shadow: 3px 3px 0 #1b1a18; background: #fff; overflow: hidden; }
+      .boot__fill { height: 100%; width: 0; background: #1b1a18; animation: boot-fill 1.6s cubic-bezier(.2,.7,.3,1) forwards; }
+      .boot--done .boot__fill { width: 100%; animation: none; transition: width 200ms; }
+      .boot__line { font-size: 12px; color: #6b6863; }
+      @keyframes boot-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+      @keyframes boot-fill { to { width: 85%; } }
+      @media (prefers-reduced-motion: reduce) { .boot__mark { animation: none; } }
+    </style>
   </head>
   <body>
+    <div id="boot" class="boot" role="status" aria-label="Chargement">
+      <svg class="boot__mark" viewBox="0 0 64 64" aria-hidden="true">
+        <g stroke="#1b1a18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 44 C3 36 14 31 30 31 C46 31 61 34 60 43 C59 51 46 55 31 54 C16 54 7 51 5 44 Z" fill="#dfdbd4"/>
+          <path d="M12 47 l7 0 M44 49 l6 0" fill="none" stroke="#fff" stroke-width="1.6"/>
+          <path d="M13 38 C8 37 5 39 4 41" fill="none"/>
+          <path d="M12 39 C12 31 20 27 31 27 C40 27 45 31 45 37 C45 42 38 44 29 44 C19 44 12 43 12 39 Z" fill="#fff"/>
+          <path d="M26 28 C25 24 27 22 29 23 M35 28 C36 24 34 22 32 23" fill="none" stroke-width="2"/>
+          <path d="M24 23 C23 19 28 16 32 17 C37 18 39 21 37 24 C35 26 27 26 24 23 Z" fill="#4a8fd4"/>
+          <circle cx="48" cy="30" r="10" fill="#fff"/>
+          <circle cx="41.5" cy="22.5" r="2.6" fill="#fff"/>
+          <circle cx="55" cy="23" r="2.6" fill="#fff"/>
+          <path d="M43.5 29 q2 -2 4 0 M50 29 q2 -2 4 0" fill="none" stroke-width="1.8"/>
+          <ellipse cx="49" cy="33" rx="2" ry="1.3" fill="#1b1a18" stroke-width="1"/>
+          <path d="M47 35.5 q2 2 4 0" fill="none" stroke-width="1.6"/>
+        </g>
+      </svg>
+      <div class="boot__title">LOUTRE.</div>
+      <div class="boot__bar"><div class="boot__fill"></div></div>
+      <div class="boot__line">on remplit la flaque…</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

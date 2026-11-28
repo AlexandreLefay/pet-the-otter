@@ -6,6 +6,8 @@ import * as THREE from 'three'
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
   onPet?: (x: number, y: number) => void
+  /** appelé une fois, après la première image dessinée */
+  onReady?: () => void
 }
 
 type V3 = [number, number, number]
@@ -16,7 +18,7 @@ const INK = 0x1b1a18
 export const OTTER_HOVER_ATTR = 'data-otter-hover'
 const PET_THROTTLE_MS = 140
 
-export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions = {}) {
+export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterSceneOptions = {}) {
   let raf = 0
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true })
@@ -968,6 +970,7 @@ export function createOtterScene(el: HTMLElement, { onPet }: OtterSceneOptions =
       if (k >= 1) { scene.remove(r.m); r.m.material.dispose(); ripples.splice(i, 1) }
     }
     renderer.render(scene, cam)
+    if (onReady) { onReady(); onReady = undefined }
     raf = requestAnimationFrame(loop)
   }
   raf = requestAnimationFrame(loop)

@@ -37,39 +37,51 @@ export function GaletIcon({ size = 40 }: { size?: number }) {
 }
 
 /**
- * Emblème du jeu : la loutre qui flotte sur le dos dans sa flaque, un galet sur le ventre.
- * Même dessin que public/logo.svg (couleurs en dur là-bas, tokens ici).
+ * Emblème du jeu : la loutre mignonne (tête ronde, grands yeux, truffe) qui sort de l'eau
+ * en tenant son galet bleu. Même dessin que public/logo.svg (couleurs en dur là-bas).
  */
 export function LogoMark({ size = 52 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 64 64" width={size} height={size} style={{ overflow: 'visible' }} aria-hidden className="logo__mark">
-      <g style={{ filter: 'var(--boil)' }} stroke="#1b1a18" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-        <LogoMarkPaths />
+    <svg viewBox="0 0 64 62" width={size} height={(size * 62) / 64} style={{ overflow: 'visible' }} aria-hidden className="logo__mark">
+      <g style={{ filter: 'var(--boil)' }} stroke="#1b1a18" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+
+    {/* oreilles */}
+    <circle cx="17.5" cy="15.5" r="4.6" fill="#8f8a83"/>
+    <circle cx="46.5" cy="15.5" r="4.6" fill="#8f8a83"/>
+    {/* épaules, dans l'eau */}
+    <path d="M12 56 C11 46 19 40 32 40 C45 40 53 46 52 56 Z" fill="#99948c"/>
+    {/* tête ronde */}
+    <circle cx="32" cy="27" r="17" fill="#fdfaf3"/>
+    {/* duvet du front */}
+    <path d="M27 11.5 q1.5 2 3 0 M32.5 10.8 q1.5 2 3 0" fill="none" strokeWidth="1.3"/>
+    {/* yeux */}
+    <circle cx="24.5" cy="25" r="3.3" fill="#1b1a18" stroke="none"/>
+    <circle cx="39.5" cy="25" r="3.3" fill="#1b1a18" stroke="none"/>
+    <circle cx="25.6" cy="23.8" r="1.1" fill="#fff" stroke="none"/>
+    <circle cx="40.6" cy="23.8" r="1.1" fill="#fff" stroke="none"/>
+    {/* coussinets de moustaches */}
+    <circle cx="28.3" cy="35" r="4.6" fill="#fff" strokeWidth="1.6"/>
+    <circle cx="35.7" cy="35" r="4.6" fill="#fff" strokeWidth="1.6"/>
+    <g fill="#1b1a18" stroke="none">
+      <circle cx="26" cy="34.2" r="0.6"/><circle cx="27.6" cy="36.6" r="0.6"/><circle cx="25.3" cy="36.9" r="0.6"/>
+      <circle cx="38" cy="34.2" r="0.6"/><circle cx="36.4" cy="36.6" r="0.6"/><circle cx="38.7" cy="36.9" r="0.6"/>
+    </g>
+    {/* truffe */}
+    <path d="M27.6 30.2 C27.6 28 36.4 28 36.4 30.2 C36.4 32.6 33.6 33.8 32 33.8 C30.4 33.8 27.6 32.6 27.6 30.2 Z" fill="#1b1a18" strokeWidth="1.2"/>
+    <ellipse cx="30.4" cy="29.8" rx="1.3" ry="0.7" fill="#fff" stroke="none"/>
+    {/* bouche */}
+    <path d="M29.6 40 q1.2 1.3 2.4 0 q1.2 1.3 2.4 0" fill="none" strokeWidth="1.3"/>
+    {/* moustaches */}
+    <path d="M22 34 l-8 -1.5 M22 36.5 l-8 1 M42 34 l8 -1.5 M42 36.5 l8 1" fill="none" strokeWidth="1"/>
+    {/* pattes qui tiennent le galet bleu */}
+    <ellipse cx="32" cy="48.5" rx="6.6" ry="3.9" fill="var(--galet, #4a8fd4)"/>
+    <ellipse cx="24.5" cy="48" rx="3.4" ry="2.8" fill="#75716a"/>
+    <ellipse cx="39.5" cy="48" rx="3.4" ry="2.8" fill="#75716a"/>
+    {/* l'eau, devant */}
+    <path d="M3 55 C9 51.5 14 53.5 19 52 C24 50.5 28 53.5 32 52.5 C37 51.2 41 53.6 46 52 C51 50.5 56 53 61 55 L61 64 L3 64 Z" fill="#dfdbd4" stroke="none"/>
+    <path d="M3 55 C9 51.5 14 53.5 19 52 C24 50.5 28 53.5 32 52.5 C37 51.2 41 53.6 46 52 C51 50.5 56 53 61 55" fill="none"/>
+    <path d="M10 57 l6 0 M42 57.5 l7 0" fill="none" stroke="#fff" strokeWidth="1.6"/>
       </g>
     </svg>
-  )
-}
-
-function LogoMarkPaths() {
-  return (
-    <>
-      {/* flaque */}
-      <path d="M5 44 C3 36 14 31 30 31 C46 31 61 34 60 43 C59 51 46 55 31 54 C16 54 7 51 5 44 Z" fill="#dfdbd4" />
-      <path d="M12 47 l7 0 M44 49 l6 0" fill="none" stroke="#fff" strokeWidth={1.6} />
-      {/* queue + corps sur le dos */}
-      <path d="M13 38 C8 37 5 39 4 41" fill="none" />
-      <path d="M12 39 C12 31 20 27 31 27 C40 27 45 31 45 37 C45 42 38 44 29 44 C19 44 12 43 12 39 Z" fill="#fff" />
-      {/* pattes qui tiennent le galet */}
-      <path d="M26 28 C25 24 27 22 29 23 M35 28 C36 24 34 22 32 23" fill="none" strokeWidth={2} />
-      <path d="M24 23 C23 19 28 16 32 17 C37 18 39 21 37 24 C35 26 27 26 24 23 Z" fill="var(--galet, #4a8fd4)" />
-      {/* tête */}
-      <circle cx={48} cy={30} r={10} fill="#fff" />
-      <circle cx={41.5} cy={22.5} r={2.6} fill="#fff" />
-      <circle cx={55} cy={23} r={2.6} fill="#fff" />
-      <path d="M43.5 29 q2 -2 4 0 M50 29 q2 -2 4 0" fill="none" strokeWidth={1.8} />
-      <ellipse cx={49} cy={33} rx={2} ry={1.3} fill="#1b1a18" strokeWidth={1} />
-      <path d="M47 35.5 q2 2 4 0" fill="none" strokeWidth={1.6} />
-      <path d="M41 33 l-6 -1 M41 35 l-6 1 M57 33 l5 -1 M57 35 l5 1" fill="none" strokeWidth={1.1} />
-    </>
   )
 }

@@ -53,6 +53,8 @@ export const moodLabel = (humeur: number) => MOODS.find(m => humeur >= m.min)!.l
 export const cost = (u: Upgrade, owned: Record<string, number>) =>
   Math.ceil(u.base * Math.pow(COST_GROWTH, count(owned, u.id)))
 export const maxed = (u: Upgrade, owned: Record<string, number>) => u.max !== undefined && count(owned, u.id) >= u.max
+/** Il manque l'amélioration requise (ex. : le deuxième bébé demande le premier). */
+export const blocked = (u: Upgrade, owned: Record<string, number>) => !!u.requires && count(owned, u.requires) === 0
 
 /** Visible si : déjà possédée, ≥ 40 % du prix, ou la précédente de sa catégorie est possédée. */
 export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
@@ -113,7 +115,7 @@ export const useGame = create<GameState>((set, get) => ({
     const u = UPGRADES.find(x => x.id === id)
     if (!u) return
     const c = cost(u, s.owned)
-    if (s.galets < c || maxed(u, s.owned)) return
+    if (s.galets < c || maxed(u, s.owned) || blocked(u, s.owned)) return
     const first = count(s.owned, id) === 0
     set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 } })
     sound.buy(count(s.owned, id) + 1)
@@ -151,9 +153,9 @@ function checkAchievements() {
 /** Un nouveau chapitre reste affiché plus longtemps qu'un succès, avec son propre son. */
 function checkStory() {
   const s = useGame.getState()
-  // les chapitres se débloquent dans l'ordre : on ne teste que le premier non lu
-  const i = STORY.findIndex(c => !s.chapters.includes(c.id))
-  if (i < 0 || !STORY[i].test(s)) return
+  // le premier chapitre (dans l'ordre du livre) non lu dont la condition est remplie
+  const i = STORY.findIndex(c => !s.chapters.includes(c.id) && c.test(s))
+  if (i < 0) return
   const c = STORY[i]
   useGame.setState({ chapters: [...s.chapters, c.id] })
   sound.chapter()

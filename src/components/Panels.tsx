@@ -1,4 +1,4 @@
-import { useGame, cost, count, isSeen, maxed } from '../game/store'
+import { useGame, cost, count, isSeen, maxed, blocked } from '../game/store'
 import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
 
@@ -61,14 +61,15 @@ function ShopItems({ category }: { category: Category }) {
         const c = cost(u, owned)
         const seen = isSeen(u, { galets, owned })
         const full = maxed(u, owned)
-        const can = seen && !full && galets >= c
+        const locked = blocked(u, owned)
+        const can = seen && !full && !locked && galets >= c
         const n = count(owned, u.id)
         return (
           <button key={u.id} className={'card' + (seen ? '' : ' card--hidden')} disabled={!can} onClick={() => buy(u.id)}>
             <div className="card__name">{seen ? u.name : '? ? ?'}</div>
             <div className="card__count">{n || ''}</div>
             <div className="card__desc">{seen ? u.desc : '…'}</div>
-            <div className="card__cost">{full ? 'adopté' : `${fmt(c)} galets`}</div>
+            <div className="card__cost">{full ? 'adopté' : locked ? 'il faut d’abord le bébé' : `${fmt(c)} galets`}</div>
           </button>
         )
       })}

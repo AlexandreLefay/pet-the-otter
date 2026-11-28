@@ -39,7 +39,7 @@ Déployé sur GitHub Pages à chaque push sur `main` : https://alexandrelefay.gi
 ## Prochaines étapes envisagées
 1. Équilibrage des coûts / gains
 2. Peaufiner le mobile
-3. Tester `window.__loutre.setState({ galets: 1e7 })` (dev uniquement) pour voir tous les achats
+3. Pour tester : menu debug (touche ², Ctrl+Maj+D, ou `?debug` dans l'adresse, aussi en ligne) — galets, perles, marées, un de chaque achat, écran de fin… ; en dev, `window.__loutre` donne aussi accès au store
 
 ## Workflow
 Commits au format Conventional Commits (`feat:`, `fix:`, `style:`…), titre court à l'impératif, corps qui explique quoi et pourquoi.

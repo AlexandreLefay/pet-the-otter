@@ -81,7 +81,8 @@ button { font: inherit; color: inherit; }
 .panel--shop .card { padding: 8px 10px; }
 .panel--shop .card__name, .panel--shop .card__count { font-size: 12.5px; }
 .panel--shop .card__desc { font-size: 11px; grid-column: 1 / -1; }
-.panel--shop .card__cost { grid-column: 1 / -1; font-size: 11.5px; }
+.panel--shop .card__cost { grid-column: 1 / -1; font-size: 11.5px; white-space: normal; }
+.panel--shop { overflow-x: hidden; }
 
 /* ——— Carte boutique */
 .card { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 14px; background: #fff; border: 2px solid var(--ink); text-align: left; cursor: pointer; box-shadow: var(--shadow); transition: transform 100ms, box-shadow 100ms, opacity 200ms; }
@@ -166,6 +167,17 @@ button { font: inherit; color: inherit; }
 .chooser__sub { color: var(--graphite); text-align: center; }
 .chooser__cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 14px; }
 .chooser__card { width: 190px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; }
+
+/* ——— Menu debug (² ou Ctrl+Maj+D, ou ?debug dans l'adresse) */
+.debug { position: absolute; left: 24px; bottom: 24px; z-index: 900; width: 340px; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: #fff; border: 2px dashed var(--ink); box-shadow: var(--shadow); font-size: 11.5px; }
+.debug__head { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-display); letter-spacing: 0.1em; }
+.debug__info { color: var(--graphite); }
+.debug__label { margin-top: 4px; font-family: var(--font-display); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--graphite); }
+.debug__row { display: flex; flex-wrap: wrap; gap: 5px; }
+.debug__btn { padding: 3px 7px; font-size: 11px; background: var(--paper); border: 1.5px solid var(--ink); cursor: pointer; }
+.debug__btn:hover { background: var(--ink); color: var(--paper); }
+.debug__btn--danger { border-style: dashed; }
+.debug__hint { margin-top: 4px; color: var(--disabled); font-size: 10.5px; }
 
 /* ——— Histoire */
 .chapter { padding: 12px 14px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }

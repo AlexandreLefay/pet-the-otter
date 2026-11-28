@@ -6,6 +6,7 @@ import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './components/Hud'
 import { Achievements, Shop, Story, Tabs, type TabId } from './components/Panels'
 import { BlessingChooser, Ending, TidePanel } from './components/Tide'
+import { DebugMenu } from './components/DebugMenu'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('boutique')
@@ -38,6 +39,7 @@ export default function App() {
       <Gains />
       <BlessingChooser />
       <Ending />
+      <DebugMenu />
       <HandCursor />
     </div>
   )

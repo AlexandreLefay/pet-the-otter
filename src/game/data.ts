@@ -1,3 +1,4 @@
+import { FACTS } from './facts'
 // Contenu du jeu : améliorations, succès, textes. Tout ce qui est « réglable » vit ici.
 
 export type Category = 'caresses' | 'accessoires' | 'decors' | 'famille'
@@ -69,6 +70,7 @@ export const UPGRADES: Upgrade[] = [
 
 export interface GameSnapshot {
   marees: number
+  facts: string[]
   galets: number
   totalGalets: number
   caresses: number
@@ -101,6 +103,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'maree', name: 'Après le déluge', desc: 'une grande marée', test: s => s.marees >= 1, toast: 'Première grande marée. La loutre a gardé son calme, et une perle.' },
   { id: 'pleine', name: 'Ça déborde', desc: 'remplir la flaque', test: s => s.galets >= 9.9e6 },
   { id: 'milliard', name: 'Le milliard', desc: '1 000 000 000 galets', test: s => s.galets >= 1e9, toast: 'Un milliard de galets. La loutre est officiellement riche. Elle n’en revient pas.' },
+  { id: 'naturaliste', name: 'Naturaliste', desc: '10 faits dans le carnet', test: s => s.facts.length >= 10, toast: 'Dix faits sur les loutres. La loutre est impressionnée : elle n’en savait que trois.' },
+  { id: 'encyclo', name: 'Encyclopédie vivante', desc: 'compléter le carnet', test: s => s.facts.length >= FACTS.length },
   { id: 'marees5', name: 'Vieux loup de mer', desc: 'cinq grandes marées', test: s => s.marees >= 5 },
 ]
 

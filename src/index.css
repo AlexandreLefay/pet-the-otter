@@ -194,6 +194,16 @@ button { font: inherit; color: inherit; }
 .fireworks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 .chooser > :not(.fireworks) { position: relative; z-index: 1; }
 
+/* ——— Quiz vrai / faux */
+.quiz { position: absolute; left: calc((100% - var(--side)) / 2); bottom: 132px; transform: translateX(-50%); z-index: 20; width: min(420px, calc(100vw - var(--side) - 32px)); display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); animation: fade-in 300ms ease-out; }
+.quiz__head { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--graphite); }
+.quiz__claim { font-size: 13px; line-height: 1.45; text-wrap: pretty; }
+.quiz__row { display: flex; gap: 10px; }
+.quiz__btn { flex: 1; padding: 8px 10px; font-family: var(--font-display); font-weight: 700; font-size: 13px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); cursor: pointer; }
+.quiz__btn:active { transform: translate(3px, 3px); box-shadow: none; }
+.quiz__time { height: 3px; background: var(--pencil); }
+.quiz__time > div { height: 100%; background: var(--ink); transition: width 1s linear; }
+
 /* ——— Histoire */
 .chapter { padding: 12px 14px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
 .chapter__title { font-family: var(--font-display); font-weight: 700; font-size: 13px; }
@@ -242,4 +252,5 @@ button { font: inherit; color: inherit; }
   .toast { bottom: auto; top: 120px; }
   .hint { top: 34%; }
   .rotate { right: auto; left: 16px; top: auto; bottom: 222px; }
+  .quiz { bottom: 220px; }
 }

@@ -2,8 +2,9 @@ import { useGame, cost, count, isSeen, maxed, blocked, bonuses, tooEarly } from 
 import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
 import { SKILLS, TIDE_THRESHOLD } from '../game/prestige'
+import { FACTS } from '../game/facts'
 
-export type TabId = 'boutique' | 'succes' | 'histoire' | 'maree' | 'stats'
+export type TabId = 'boutique' | 'succes' | 'histoire' | 'carnet' | 'maree' | 'stats'
 
 const SECTIONS: { id: Category; name: string }[] = [
   { id: 'caresses', name: 'Caresses' },
@@ -16,6 +17,7 @@ export const TABS: { id: TabId; name: string }[] = [
   { id: 'boutique', name: 'Boutique' },
   { id: 'succes', name: 'Succès' },
   { id: 'histoire', name: 'Histoire' },
+  { id: 'carnet', name: 'Carnet' },
   { id: 'maree', name: 'Marée' },
   { id: 'stats', name: 'Stats' },
 ]
@@ -156,6 +158,8 @@ export function Stats() {
     ['compétences', `${s.skills.length} / ${SKILLS.length}`],
     ['coups d’éclat (×10)', fmt(st.crits)],
     ['succès', `${s.unlocked.length} / ${ACHIEVEMENTS.length}`],
+    ['faits dans le carnet', `${s.facts.length} / ${FACTS.length}`],
+    ['quiz réussis', `${st.quizRight} / ${st.quizzes}`],
     ['chapitres lus', `${s.chapters.length} / ${STORY.length}`],
     ['première caresse', day(st.startedAt)],
     ['le milliard', st.finishedAt ? day(st.finishedAt) : 'pas encore'],
@@ -171,6 +175,28 @@ export function Stats() {
           </div>
         ))}
       </dl>
+    </div>
+  )
+}
+
+/** Onglet « Carnet » : les faits sur les loutres découverts en jouant. */
+export function Notebook() {
+  const facts = useGame(s => s.facts)
+  return (
+    <div className="panel">
+      <h3 className="shop__title">Le carnet · {facts.length} / {FACTS.length}</h3>
+      <p className="chapter__text">
+        De vrais faits sur les loutres. On les découvre en achetant, au fil du jeu, et en répondant aux quiz.
+      </p>
+      {FACTS.map((f, i) => {
+        const ok = facts.includes(f.id)
+        return (
+          <div key={f.id} className={'chapter' + (ok ? '' : ' chapter--locked')}>
+            <div className="chapter__title">n° {i + 1}</div>
+            <div className="chapter__text">{ok ? f.text : '…'}</div>
+          </div>
+        )
+      })}
     </div>
   )
 }

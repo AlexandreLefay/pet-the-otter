@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { ACHIEVEMENTS, COST_GROWTH, IDLE_LINES, MOODS, STORY, UPGRADES, type Upgrade } from './data'
 import { fmt } from './format'
 import { sound } from './sound'
+import { FACTS } from './facts'
 import { GOAL, SKILLS, bonuses, capacity, drawBlessings, pearlGain, startingState, type PrestigeState } from './prestige'
 
 const SAVE_KEY = 'loutre-save-v2'
@@ -38,6 +39,8 @@ interface SavedState {
   finished: boolean
   /** statistiques de toute la partie (survivent aux marées, effacées par « recommencer ») */
   stats: Stats
+  /** faits sur les loutres découverts (le carnet) */
+  facts: string[]
 }
 
 export interface Stats {
@@ -57,8 +60,11 @@ export interface Stats {
   startedAt: number
   /** date du milliard (ms), 0 avant */
   finishedAt: number
+  /** quiz vrai / faux : réponses justes, et quiz proposés */
+  quizRight: number
+  quizzes: number
 }
-export const EMPTY_STATS: Stats = { allGalets: 0, playSec: 0, buys: 0, pearlsEarned: 0, crits: 0, bestRate: 0, startedAt: 0, finishedAt: 0 }
+export const EMPTY_STATS: Stats = { allGalets: 0, playSec: 0, buys: 0, pearlsEarned: 0, crits: 0, bestRate: 0, startedAt: 0, finishedAt: 0, quizRight: 0, quizzes: 0 }
 
 interface GameState extends SavedState {
   humeur: number
@@ -80,6 +86,13 @@ interface GameState extends SavedState {
   closeEnding: () => void
   /** l'écran de fin est affiché */
   ending: boolean
+  /** quiz vrai / faux en cours (non sauvegardé) */
+  quiz: { id: string; until: number } | null
+  /** ajoute un fait au carnet et l'affiche (« Le saviez-vous ? ») */
+  learnFact: (id: string, delayMs?: number) => void
+  /** propose un quiz vrai / faux */
+  askQuiz: () => void
+  answerQuiz: (answer: boolean | null) => void
 }
 
 // ——— dérivés (fonctions pures, utilisables partout)
@@ -117,7 +130,7 @@ export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
 // Chaque joueur a sa partie dans SON navigateur (localStorage) : rien n'est envoyé ailleurs.
 // Elle est écrite toutes les 2 s, après chaque achat ou marée, et quand l'onglet est caché ou fermé.
 const SAVE_VERSION = 3
-const EMPTY: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, stats: { ...EMPTY_STATS } }
+const EMPTY: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, stats: { ...EMPTY_STATS }, facts: [] }
 const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d)
 const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
 
@@ -141,6 +154,7 @@ function sanitize(raw: unknown): SavedState {
     skills: strs(o.skills),
     pending: Array.isArray(o.pending) ? strs(o.pending) : null,
     finished: o.finished === true,
+    facts: strs(o.facts).filter(id => FACTS.some(f => f.id === id)),
     stats: (() => {
       const st = (o.stats && typeof o.stats === 'object' ? o.stats : {}) as Record<string, unknown>
       const out = { ...EMPTY_STATS }
@@ -152,8 +166,8 @@ function sanitize(raw: unknown): SavedState {
   }
 }
 function snapshot(s: SavedState) {
-  const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished, stats } = s
-  return { v: SAVE_VERSION, at: Date.now(), galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished, stats }
+  const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished, stats, facts } = s
+  return { v: SAVE_VERSION, at: Date.now(), galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished, stats, facts }
 }
 function load(): SavedState {
   try {
@@ -197,6 +211,7 @@ export function importSave(code: string) {
 const initial = load()
 let uid = 0
 let toastTimer: ReturnType<typeof setTimeout> | undefined
+const toastQueue: { text: string; ms: number }[] = []
 
 export const useGame = create<GameState>((set, get) => ({
   ...initial,
@@ -205,6 +220,7 @@ export const useGame = create<GameState>((set, get) => ({
   gains: [],
   petTick: 0,
   ending: false,
+  quiz: null,
 
   pet: (x, y) => {
     const s = get()
@@ -239,6 +255,8 @@ export const useGame = create<GameState>((set, get) => ({
     set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 }, stats: { ...s.stats, buys: s.stats.buys + 1 } })
     sound.buy(count(s.owned, id) + 1)
     if (first && u.firstBuy) get().notify(u.firstBuy)
+    const fact = first && FACTS.find(f => f.item === id && !get().facts.includes(f.id))
+    if (fact) get().learnFact(fact.id)
     checkAchievements()
     save(get())
   },
@@ -254,18 +272,31 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   notify: (text, ms = 4200) => {
-    clearTimeout(toastTimer)
-    set({ toast: { id: ++uid, text } })
-    toastTimer = setTimeout(() => set({ toast: null }), ms)
+    // une file d'attente : un message n'en efface plus un autre (succès, chapitre, fait…)
+    if (get().toast) {
+      if (!toastQueue.some(q => q.text === text) && toastQueue.length < 5) toastQueue.push({ text, ms })
+      return
+    }
+    const showNext = (t: string, d: number) => {
+      set({ toast: { id: ++uid, text: t } })
+      toastTimer = setTimeout(() => {
+        set({ toast: null })
+        const next = toastQueue.shift()
+        if (next) toastTimer = setTimeout(() => showNext(next.text, next.ms), 350)
+      }, d)
+    }
+    showNext(text, ms)
   },
 
   reset: () => {
+    toastQueue.length = 0
+    clearTimeout(toastTimer)
     try {
       localStorage.removeItem(SAVE_KEY)
     } catch {
       /* rien */
     }
-    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, stats: { ...EMPTY_STATS }, ending: false, humeur: 0, gains: [], toast: null })
+    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, stats: { ...EMPTY_STATS }, facts: [], quiz: null, ending: false, humeur: 0, gains: [], toast: null })
   },
 
   tide: () => {
@@ -311,6 +342,47 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   closeEnding: () => set({ ending: false }),
+
+  learnFact: (id, delayMs = 0) => {
+    const f = FACTS.find(x => x.id === id)
+    if (!f) return
+    if (!get().facts.includes(id)) set(s => ({ facts: [...s.facts, id] }))
+    const show = () => { get().notify(`Le saviez-vous ? ${f.text}`, 9000); sound.chapter(); checkAchievements() }
+    if (delayMs) setTimeout(show, delayMs)
+    else show()
+  },
+
+  askQuiz: () => {
+    const s = get()
+    if (s.quiz || s.pending || s.ending) return
+    // de préférence un fait pas encore découvert
+    const fresh = FACTS.filter(f => !s.facts.includes(f.id))
+    const pool = fresh.length ? fresh : FACTS
+    const f = pool[Math.floor(Math.random() * pool.length)]
+    set({ quiz: { id: f.id, until: Date.now() + 25000 }, stats: { ...s.stats, quizzes: s.stats.quizzes + 1 } })
+  },
+
+  answerQuiz: answer => {
+    const s = get()
+    const q = s.quiz
+    if (!q) return
+    const f = FACTS.find(x => x.id === q.id)!
+    set({ quiz: null, facts: s.facts.includes(f.id) ? s.facts : [...s.facts, f.id] })
+    if (answer === null) return // le quiz a expiré : on ne dit rien
+    if (answer === f.truth) {
+      // bonne réponse : environ 45 s de revenu (au moins 100 galets), dans la limite de la flaque
+      const reward = Math.max(0, Math.min(Math.max(100, perSecond(s) * 45), capacity(s) - s.galets))
+      const st = get().stats
+      set(x => ({ galets: x.galets + reward, totalGalets: x.totalGalets + reward, stats: { ...st, allGalets: st.allGalets + reward, quizRight: st.quizRight + 1 } }))
+      sound.success()
+      get().notify(`Bonne réponse ! +${fmt(reward)} galets. ${f.text}`, 9000)
+    } else {
+      sound.nope()
+      get().notify(`Raté : c’était ${f.truth ? 'vrai' : 'faux'}. ${f.text}`, 9000)
+    }
+    checkAchievements()
+    save(get())
+  },
 }))
 
 function checkAchievements() {
@@ -369,6 +441,23 @@ export function startGameLoops() {
     const s = useGame.getState()
     if (!s.toast && s.caresses > 0 && Math.random() < 0.35) s.notify(IDLE_LINES[(Math.random() * IDLE_LINES.length) | 0])
   }, 20000)
+  // toutes les 70 s environ : un quiz vrai / faux, ou un nouveau fait pour le carnet
+  const learn = setInterval(() => {
+    const s = useGame.getState()
+    if (s.quiz && Date.now() > s.quiz.until) { s.answerQuiz(null); return }
+    if (s.toast || s.quiz || s.caresses < 15 || document.visibilityState === 'hidden') return
+    if (Math.random() < 0.55) s.askQuiz()
+    else {
+      const fresh = FACTS.filter(f => !s.facts.includes(f.id) && !f.item)
+      const any = FACTS.filter(f => !s.facts.includes(f.id))
+      const pick = (fresh.length ? fresh : any)[Math.floor(Math.random() * (fresh.length || any.length))]
+      if (pick) s.learnFact(pick.id)
+    }
+  }, 70000)
+  const quizTimeout = setInterval(() => {
+    const s = useGame.getState()
+    if (s.quiz && Date.now() > s.quiz.until) s.answerQuiz(null)
+  }, 1000)
   // onglet fermé, rechargé, ou mis en arrière-plan (sur mobile, c'est souvent le dernier signal)
   const onHide = () => save(useGame.getState())
   const onVisibility = () => { if (document.visibilityState === 'hidden') onHide() }
@@ -380,6 +469,8 @@ export function startGameLoops() {
     clearInterval(tick)
     clearInterval(slow)
     clearInterval(idle)
+    clearInterval(learn)
+    clearInterval(quizTimeout)
     window.removeEventListener('beforeunload', onHide)
     window.removeEventListener('pagehide', onHide)
     document.removeEventListener('visibilitychange', onVisibility)

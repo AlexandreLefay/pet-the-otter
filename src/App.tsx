@@ -4,7 +4,8 @@ import { BoilFilters } from './components/Boil'
 import { SceneView } from './components/SceneView'
 import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './components/Hud'
-import { Achievements, Shop, Stats, Story, Tabs, type TabId } from './components/Panels'
+import { Achievements, Notebook, Shop, Stats, Story, Tabs, type TabId } from './components/Panels'
+import { Quiz } from './components/Quiz'
 import { BlessingChooser, Ending, TidePanel } from './components/Tide'
 import { DebugMenu } from './components/DebugMenu'
 import { SaveMenu } from './components/SaveMenu'
@@ -25,7 +26,7 @@ export default function App() {
       <Counter />
       <Mood />
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : tab === 'maree' ? <TidePanel /> : tab === 'stats' ? <Stats /> : <Shop />}
+      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : tab === 'maree' ? <TidePanel /> : tab === 'stats' ? <Stats /> : tab === 'carnet' ? <Notebook /> : <Shop />}
       {confirming ? (
         <div className="link-row">
           <span>tout recommencer ?</span>
@@ -37,6 +38,7 @@ export default function App() {
       )}
       <SoundToggle />
       <SaveMenu />
+      <Quiz />
       <Toast />
       <Gains />
       <BlessingChooser />

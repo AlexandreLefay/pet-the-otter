@@ -5,7 +5,7 @@ import { SceneView } from './components/SceneView'
 import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './components/Hud'
 import { Achievements, Shop, Story, Tabs, type TabId } from './components/Panels'
-import { BlessingChooser, TidePanel } from './components/Tide'
+import { BlessingChooser, Ending, TidePanel } from './components/Tide'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('boutique')
@@ -37,6 +37,7 @@ export default function App() {
       <Toast />
       <Gains />
       <BlessingChooser />
+      <Ending />
       <HandCursor />
     </div>
   )

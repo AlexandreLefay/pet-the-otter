@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { sound } from '../game/sound'
-import { useGame, perSecond, multiplier, moodLabel, bonuses } from '../game/store'
+import { useGame, perSecond, multiplier, moodLabel, bonuses, capacity } from '../game/store'
+import { GOAL } from '../game/prestige'
 import { fmt, fmtRate } from '../game/format'
 import { GaletIcon, LogoMark } from './Boil'
 
@@ -26,6 +27,24 @@ export function Counter() {
         <div className="counter__value">{fmt(galets)}</div>
       </div>
       <div className="counter__rate">+ {fmtRate(rate)} galets / s</div>
+      <Reservoir />
+    </div>
+  )
+}
+
+/** Jauge de la flaque : combien elle contient encore, et l'objectif du milliard. */
+function Reservoir() {
+  const galets = useGame(s => s.galets)
+  const cap = useGame(s => capacity(s))
+  const full = galets >= cap * 0.999
+  return (
+    <div className="reservoir" title="au-delà, les galets débordent ; les grandes marées agrandissent la flaque">
+      <div className="reservoir__bar">
+        <div className="reservoir__fill" style={{ width: `${Math.min(100, (galets / cap) * 100)}%` }} />
+      </div>
+      <div className="reservoir__label">
+        {full ? 'la flaque est pleine' : `flaque ${fmt(galets)} / ${fmt(cap)}`} · objectif {fmt(GOAL)}
+      </div>
     </div>
   )
 }

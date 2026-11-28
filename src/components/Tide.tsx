@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useGame } from '../game/store'
-import { BLESSINGS, SKILLS, SKILL_BRANCHES, TIDE_THRESHOLD, pearlGain } from '../game/prestige'
+import { BLESSINGS, GOAL, SKILLS, SKILL_BRANCHES, TIDE_THRESHOLD, capacity, pearlGain } from '../game/prestige'
 import { fmt } from '../game/format'
 
 /** Une perle : rond blanc cerné d'encre, avec un reflet. */
@@ -27,7 +27,10 @@ export function TidePanel() {
   const tide = useGame(s => s.tide)
   const buySkill = useGame(s => s.buySkill)
   const [confirm, setConfirm] = useState(false)
-  const gain = pearlGain(total, blessings)
+  const gain = pearlGain(total, blessings, skills)
+  const cap = useGame(s => capacity(s))
+  // contenance de la flaque après la prochaine marée
+  const nextCap = capacity({ marees: marees + 1, blessings, skills })
 
   // bénédictions regroupées : « Doigts de fée ×2 »
   const counts = blessings.reduce<Record<string, number>>((m, id) => ({ ...m, [id]: (m[id] || 0) + 1 }), {})
@@ -49,7 +52,8 @@ export function TidePanel() {
         <h3 className="shop__title">La grande marée</h3>
         <p className="tide__text">
           Tout recommence à zéro : galets, achats, loutres. Tu gardes tes perles, tes succès, l’histoire,
-          et tu choisis une bénédiction parmi trois.
+          et tu choisis une bénédiction parmi trois. La flaque, elle, s’agrandit :
+          {' '}<b>{fmt(cap)}</b> → <b>{fmt(nextCap)}</b> galets. Il en faudra {fmt(GOAL)} pour finir le jeu.
         </p>
         {gain >= 1 ? (
           confirm ? (
@@ -143,6 +147,30 @@ export function BlessingChooser() {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/** Le milliard est atteint : l'écran de fin (on peut continuer à jouer). */
+export function Ending() {
+  const ending = useGame(s => s.ending)
+  const marees = useGame(s => s.marees)
+  const caresses = useGame(s => s.caresses)
+  const unlocked = useGame(s => s.unlocked.length)
+  const close = useGame(s => s.closeEnding)
+  if (!ending) return null
+  return (
+    <div className="chooser" role="dialog" aria-label="Fin">
+      <div className="chooser__title">Fin.</div>
+      <div className="chooser__sub">
+        Un milliard de galets. La loutre les a tous comptés, deux fois, puis elle s’est endormie au milieu.
+      </div>
+      <div className="ending__stats">
+        <div><b>{marees}</b>marée{marees > 1 ? 's' : ''}</div>
+        <div><b>{fmt(caresses)}</b>caresses</div>
+        <div><b>{unlocked}</b>succès</div>
+      </div>
+      <button className="tide__btn" style={{ marginTop: 18 }} onClick={close}>continuer à flotter</button>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useGame, cost, count, isSeen, maxed, blocked, bonuses } from '../game/store'
+import { useGame, cost, count, isSeen, maxed, blocked, bonuses, tooEarly } from '../game/store'
 import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
 import { TIDE_THRESHOLD } from '../game/prestige'
@@ -56,10 +56,12 @@ function ShopItems({ category }: { category: Category }) {
   const owned = useGame(s => s.owned)
   const buy = useGame(s => s.buy)
   const costMult = useGame(s => bonuses(s).cost)
+  const marees = useGame(s => s.marees)
   // on montre ce qui est déjà découvert, plus une seule carte mystère par section
   const all = UPGRADES.filter(u => u.category === category)
   const firstHidden = all.find(u => !isSeen(u, { galets, owned }))
-  const items = all.filter(u => u === firstHidden || isSeen(u, { galets, owned }))
+  // les achats réservés aux marées futures apparaissent, verrouillés, pour donner envie
+  const items = all.filter(u => u === firstHidden || isSeen(u, { galets, owned }) || tooEarly(u, marees))
   return (
     <>
       {items.map(u => {
@@ -67,14 +69,19 @@ function ShopItems({ category }: { category: Category }) {
         const seen = isSeen(u, { galets, owned })
         const full = maxed(u, owned)
         const locked = blocked(u, owned)
-        const can = seen && !full && !locked && galets >= c
+        const early = tooEarly(u, marees)
+        const can = seen && !full && !locked && !early && galets >= c
         const n = count(owned, u.id)
         return (
-          <button key={u.id} className={'card' + (seen ? '' : ' card--hidden')} disabled={!can} onClick={() => buy(u.id)}>
-            <div className="card__name">{seen ? u.name : '? ? ?'}</div>
+          <button key={u.id} className={'card' + (seen && !early ? '' : ' card--hidden')} disabled={!can} onClick={() => buy(u.id)}>
+            <div className="card__name">{seen || early ? u.name : '? ? ?'}</div>
             <div className="card__count">{n || ''}</div>
-            <div className="card__desc">{seen ? u.desc : '…'}</div>
-            <div className="card__cost">{full ? 'adopté' : locked ? 'il faut d’abord le bébé' : `${fmt(c)} galets`}</div>
+            <div className="card__desc">{seen && !early ? u.desc : '…'}</div>
+            <div className="card__cost">
+              {early
+                ? `après ${u.minMarees} grande${(u.minMarees ?? 0) > 1 ? 's' : ''} marée${(u.minMarees ?? 0) > 1 ? 's' : ''}`
+                : full ? 'adopté' : locked ? 'il faut d’abord le bébé' : `${fmt(c)} galets`}
+            </div>
           </button>
         )
       })}

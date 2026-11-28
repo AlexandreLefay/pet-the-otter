@@ -428,7 +428,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Prop = { obj: THREE.Object3D; born: number; y0: number; splash: boolean; water: boolean; i: number }
   const props: Record<string, Prop[]> = {}
   let clock = 0 // ms, mis à jour par la boucle
-  const CAP: Record<string, number> = { rocher: 4, nenuphar: 6, galet: 3, amie: 10, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 3, parasol: 2, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1 }
+  const CAP: Record<string, number> = { rocher: 4, nenuphar: 6, galet: 3, amie: 10, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 3, parasol: 2, phare: 1, jumeau: 1, grandmere: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
 
   // places du radeau autour de la mère (repère de la mère : +x vers sa tête)
   const RAFT: [number, number][] = [[-0.15, 1.05], [-0.15, -1.05], [-2.7, 0.65], [-2.7, -0.65], [2.6, 0.7], [2.6, -0.7], [-0.15, 2.5], [-0.15, -2.5], [-2.7, 1.95], [-2.7, -1.95]]
@@ -601,6 +601,84 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         }
         return { obj: g, parent: otter, water: false }
       }
+      case 'cape': {
+        // une cape sombre qui flotte à la surface, attachée au cou, et ondule derrière elle
+        const sh = new THREE.Shape()
+        sh.moveTo(0.85, 0.22)
+        sh.bezierCurveTo(0.2, 0.75, -0.9, 0.95, -1.5, 0.75)
+        sh.bezierCurveTo(-1.7, 0.2, -1.7, -0.2, -1.5, -0.75)
+        sh.bezierCurveTo(-0.9, -0.95, 0.2, -0.75, 0.85, -0.22)
+        sh.lineTo(0.85, 0.22)
+        const cloth = new THREE.Mesh(new THREE.ShapeGeometry(sh, 24), tone(0x45433f))
+        cloth.rotation.x = -Math.PI / 2
+        cloth.position.y = 0.05
+        cloth.receiveShadow = true
+        g.add(cloth)
+        add(new THREE.SphereGeometry(0.06, 10, 8), stoneTones[0], body, [0.84, 0.5, 0])
+        g.userData.cloth = cloth
+        return { obj: g, parent: otter, water: true }
+      }
+      case 'monocle': {
+        add(ringGeo, black, g, [0, 0, 0], null, [2.5, 2.5, 1], false)
+        const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.32, 4), black)
+        chain.position.set(0.1, -0.17, -0.02)
+        chain.rotation.z = 0.5
+        g.add(chain)
+        g.position.set(0.14, 0.07, 0.37)
+        return { obj: g, parent: head, water: false }
+      }
+      case 'moulin': {
+        // un petit moulin au bord de la flaque ; sa roue tourne dans l'eau
+        add(new THREE.BoxGeometry(0.9, 0.8, 0.8), paperMat, g, [0, 0.4, 0])
+        add(new THREE.ConeGeometry(0.75, 0.5, 4), bowMat, g, [0, 1.05, 0], [0, Math.PI / 4, 0])
+        add(new THREE.BoxGeometry(0.2, 0.3, 0.02), black, g, [0, 0.25, 0.41], null, null, false)
+        const wheel = new THREE.Group()
+        wheel.position.set(0.62, 0.38, 0)
+        g.add(wheel)
+        add(new THREE.TorusGeometry(0.42, 0.035, 6, 24), stoneTones[2], wheel, [0, 0, 0], [0, Math.PI / 2, 0])
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2
+          add(new THREE.BoxGeometry(0.16, 0.06, 0.2), paperMat, wheel, [0, Math.cos(a) * 0.42, Math.sin(a) * 0.42], [a, 0, 0])
+        }
+        g.userData.wheel = wheel
+        g.position.set(-4.7, 0, 1.0)
+        g.rotation.y = 0.6
+        spreadAdd(g)
+        return { obj: g, parent: scene, water: false }
+      }
+      case 'arcenciel': {
+        // un arc-en-ciel en gris : quatre bandes, du plus clair au plus foncé
+        ;[0xf1eee8, 0xdcd8cf, 0xc6c1b7, 0xafaa9f].forEach((c, k) => {
+          const band = new THREE.Mesh(new THREE.TorusGeometry(3.3 - k * 0.26, 0.13, 6, 64, Math.PI), tone(c))
+          g.add(band)
+        })
+        g.rotation.y = Math.PI / 4
+        g.position.set(-3.2, 0, -3.2)
+        spreadAdd(g)
+        return { obj: g, parent: scene, water: false }
+      }
+      case 'voisins': {
+        // les voisins : leur propre petite flaque, juste à côté, et trois loutres
+        const pool = new THREE.Mesh(blob(1.1, 1.4, 1, 1.7), new THREE.MeshToonMaterial({ color: 0xdfdbd4, gradientMap: grad, stencilWrite: true, stencilRef: 1, stencilZPass: THREE.ReplaceStencilOp }))
+        pool.rotation.x = -Math.PI / 2
+        pool.position.y = 0.02
+        pool.receiveShadow = true
+        g.add(pool)
+        const trio: OtterRig[] = []
+        ;[[-0.6, 0.2], [0.5, -0.3], [0.2, 0.55]].forEach(([x, z], k) => {
+          const o = makeOtter(201 + k * 7, lookFor(201 + k * 7), true)
+          o.root.scale.setScalar(0.62)
+          o.root.position.set(x, 0, z)
+          o.root.rotation.y = k * 2.1
+          o.root.traverse(c => { c.castShadow = false })
+          g.add(o.root)
+          trio.push(o)
+        })
+        g.userData.trio = trio
+        g.position.set(1.4, 0, 4.9)
+        spreadAdd(g)
+        return { obj: g, parent: scene, water: true }
+      }
       case 'riviere': {
         // un bras de rivière qui arrive par l'arrière et se jette dans la flaque
         const sh = new THREE.Shape()
@@ -664,7 +742,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   let gTarget = 1
   /** La mare grandit avec la famille (plafonnée avec le nombre d'amies affichées). */
   const growthFor = (owned: Record<string, number>) =>
-    1 + 0.1 * Math.min(CAP.amie, owned.amie || 0) + ((owned.cousin || 0) > 0 ? 0.08 : 0) + ((owned.grandmere || 0) > 0 ? 0.08 : 0) + ((owned.riviere || 0) > 0 ? 0.1 : 0)
+    1 + 0.1 * Math.min(CAP.amie, owned.amie || 0) + ((owned.cousin || 0) > 0 ? 0.08 : 0) + ((owned.grandmere || 0) > 0 ? 0.08 : 0) + ((owned.voisins || 0) > 0 ? 0.12 : 0) + Math.min(0.3, 0.03 * (owned.colonie || 0)) + ((owned.riviere || 0) > 0 ? 0.1 : 0)
   const applyGrowth = () => {
     spread.forEach(({ o, x, z }) => o.position.set(x * G, o.position.y, z * G))
     pools.forEach(m => m.scale.set(G, G, 1))
@@ -750,7 +828,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const sync = (owned: Record<string, number>) => {
     syncProps(owned, synced)
     // un achat qui ne se voit pas (caresses) fait quand même réagir la loutre
-    if (synced && ['patte', 'gant', 'bain', 'brosse', 'massage'].some(k => (owned[k] || 0) > (prevOwned[k] || 0))) { hop = 1; squish = 1; ripple(true) }
+    if (synced && ['patte', 'gant', 'bain', 'brosse', 'massage', 'chatouilles', 'concert', 'colonie'].some(k => (owned[k] || 0) > (prevOwned[k] || 0))) { hop = 1; squish = 1; ripple(true) }
     prevOwned = owned
     const wantPup = (owned.bebe || 0) > 0
     if (wantPup && !pup.visible) {
@@ -823,6 +901,25 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
             pr.obj.rotation.set(Math.sin(t / 700 + pr.i) * 0.08, -a - Math.PI / 2, Math.sin(t / 900) * 0.06)
             break
           }
+          case 'cape': {
+            const cloth = pr.obj.userData.cloth as THREE.Mesh
+            cloth.scale.set(1 + Math.sin(t / 900) * 0.03, 1 + Math.sin(t / 650) * 0.06, 1)
+            break
+          }
+          case 'moulin':
+            ;(pr.obj.userData.wheel as THREE.Object3D).rotation.x = -t / 1400
+            break
+          case 'arcenciel':
+            pr.obj.scale.setScalar(G)
+            break
+          case 'voisins':
+            ;(pr.obj.userData.trio as OtterRig[]).forEach((o, k) => {
+              o.root.position.y = Math.sin(t / 900 + k * 2) * 0.03
+              o.root.rotation.y = k * 2.1 + Math.sin(t / 5000 + k) * 0.4
+              o.root.updateMatrixWorld(true)
+              o.head.lookAt(o.head.getWorldPosition(wq).add(camDir))
+            })
+            break
           case 'phare':
             ;(pr.obj.userData.beam as THREE.Object3D).rotation.y = t / 1800
             break

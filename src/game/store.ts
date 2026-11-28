@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { ACHIEVEMENTS, COST_GROWTH, IDLE_LINES, MOODS, STORY, UPGRADES, type Upgrade } from './data'
 import { fmt } from './format'
 import { sound } from './sound'
-import { SKILLS, bonuses, drawBlessings, pearlGain, startingState, type PrestigeState } from './prestige'
+import { GOAL, SKILLS, bonuses, capacity, drawBlessings, pearlGain, startingState, type PrestigeState } from './prestige'
 
 const SAVE_KEY = 'loutre-save-v2'
 
@@ -34,6 +34,8 @@ interface SavedState {
   skills: string[]
   /** les trois bénédictions proposées, tant que le joueur n'a pas choisi */
   pending: string[] | null
+  /** le milliard a été atteint (l'écran de fin a été montré) */
+  finished: boolean
 }
 
 interface GameState extends SavedState {
@@ -52,6 +54,10 @@ interface GameState extends SavedState {
   tide: () => void
   chooseBlessing: (id: string) => void
   buySkill: (id: string) => void
+  /** ferme l'écran de fin */
+  closeEnding: () => void
+  /** l'écran de fin est affiché */
+  ending: boolean
 }
 
 // ——— dérivés (fonctions pures, utilisables partout)
@@ -74,6 +80,9 @@ export const cost = (u: Upgrade, owned: Record<string, number>, mult = 1) =>
 export const maxed = (u: Upgrade, owned: Record<string, number>) => u.max !== undefined && count(owned, u.id) >= u.max
 /** Il manque l'amélioration requise (ex. : le deuxième bébé demande le premier). */
 export const blocked = (u: Upgrade, owned: Record<string, number>) => !!u.requires && count(owned, u.requires) === 0
+/** Réservée aux joueurs qui ont déjà vu assez de grandes marées. */
+export const tooEarly = (u: Upgrade, marees: number) => (u.minMarees ?? 0) > marees
+export { capacity }
 
 /** Visible si : déjà possédée, ≥ 40 % du prix, ou la précédente de sa catégorie est possédée. */
 export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
@@ -84,7 +93,7 @@ export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
 
 // ——— sauvegarde
 function load(): SavedState {
-  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null }
+  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false }
   try {
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return empty
@@ -95,8 +104,8 @@ function load(): SavedState {
 }
 function save(s: SavedState) {
   try {
-    const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending } = s
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending }))
+    const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished } = s
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished }))
   } catch {
     /* stockage indisponible : tant pis */
   }
@@ -111,15 +120,19 @@ export const useGame = create<GameState>((set, get) => ({
   toast: null,
   gains: [],
   petTick: 0,
+  ending: false,
 
   pet: (x, y) => {
     const s = get()
     const b = bonuses(s)
-    const gain = perClick(s) * multiplier(s.humeur, b.mood) + perSecond(s) * b.echo
-    const g: Gain = { id: ++uid, x, y, text: '+' + fmt(gain), rot: Math.random() * 16 - 8 }
+    const crit = Math.random() < b.crit
+    const gain = (perClick(s) * multiplier(s.humeur, b.mood) + perSecond(s) * b.echo) * (crit ? 10 : 1)
+    // la flaque a une contenance : ce qui dépasse déborde et se perd
+    const kept = Math.max(0, Math.min(gain, capacity(s) - s.galets))
+    const g: Gain = { id: ++uid, x, y, text: kept > 0 ? '+' + fmt(gain) + (crit ? ' !' : '') : 'plein', rot: Math.random() * 16 - 8 }
     set({
-      galets: s.galets + gain,
-      totalGalets: s.totalGalets + gain,
+      galets: s.galets + kept,
+      totalGalets: s.totalGalets + kept,
       caresses: s.caresses + 1,
       humeur: Math.min(100, s.humeur + 5),
       gains: [...s.gains.slice(-20), g],
@@ -127,6 +140,7 @@ export const useGame = create<GameState>((set, get) => ({
     })
     setTimeout(() => set(st => ({ gains: st.gains.filter(q => q.id !== g.id) })), 900)
     sound.plop(s.humeur)
+    if (crit) sound.buy(8)
     checkAchievements()
   },
 
@@ -135,7 +149,7 @@ export const useGame = create<GameState>((set, get) => ({
     const u = UPGRADES.find(x => x.id === id)
     if (!u) return
     const c = cost(u, s.owned, bonuses(s).cost)
-    if (s.galets < c || maxed(u, s.owned) || blocked(u, s.owned)) return
+    if (s.galets < c || maxed(u, s.owned) || blocked(u, s.owned) || tooEarly(u, s.marees)) return
     const first = count(s.owned, id) === 0
     set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 } })
     sound.buy(count(s.owned, id) + 1)
@@ -145,7 +159,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   tick: dt => {
     const s = get()
-    const inc = perSecond(s) * dt
+    const inc = Math.max(0, Math.min(perSecond(s) * dt, capacity(s) - s.galets))
     set({ galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * bonuses(s).decay * dt) })
   },
 
@@ -161,12 +175,12 @@ export const useGame = create<GameState>((set, get) => ({
     } catch {
       /* rien */
     }
-    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, humeur: 0, gains: [], toast: null })
+    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, ending: false, humeur: 0, gains: [], toast: null })
   },
 
   tide: () => {
     const s = get()
-    const gain = pearlGain(s.totalGalets, s.blessings)
+    const gain = pearlGain(s.totalGalets, s.blessings, s.skills)
     if (gain < 1 || s.pending) return
     // on garde : perles, succès, histoire, bénédictions, compétences ; tout le reste repart de zéro
     const start = startingState(s.blessings, s.skills)
@@ -204,11 +218,23 @@ export const useGame = create<GameState>((set, get) => ({
     sound.buy(s.skills.length + 1)
     save(get())
   },
+
+  closeEnding: () => set({ ending: false }),
 }))
 
 function checkAchievements() {
   checkSuccesses()
   checkStory()
+  checkGoal()
+}
+
+/** Le milliard : la fin du jeu (on peut continuer à flotter ensuite). */
+function checkGoal() {
+  const s = useGame.getState()
+  if (s.finished || s.galets < GOAL) return
+  useGame.setState({ finished: true, ending: true })
+  sound.chapter()
+  save(useGame.getState())
 }
 
 /** Un nouveau chapitre reste affiché plus longtemps qu'un succès, avec son propre son. */

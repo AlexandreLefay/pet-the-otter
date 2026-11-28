@@ -18,6 +18,8 @@ export interface Upgrade {
   max?: number
   /** amélioration à posséder avant de pouvoir acheter celle-ci */
   requires?: string
+  /** nombre de grandes marées à avoir traversées pour la débloquer */
+  minMarees?: number
 }
 
 export const COST_GROWTH = 1.15
@@ -32,7 +34,9 @@ export const UPGRADES: Upgrade[] = [
   { id: 'brosse', category: 'caresses', name: 'Brosse douce', desc: 'à poils de blaireau, il est d’accord · +25 /caresse', base: 6000, click: 25 },
   { id: 'riviere', category: 'caresses', name: 'La rivière', desc: 'tout le monde vient · +400 /s', base: 90000, auto: 400 },
   { id: 'massage', category: 'caresses', name: 'Massage du dos', desc: 'elle grogne de plaisir · +200 /caresse', base: 150000, click: 200 },
+  { id: 'chatouilles', category: 'caresses', name: 'Chatouilles expertes', desc: 'technique secrète des anciennes · +1 000 /caresse', base: 3e6, click: 1000, minMarees: 1 },
   { id: 'berceuse', category: 'caresses', name: 'La berceuse', desc: 'des notes flottent au-dessus du bébé · +1 200 /s', base: 400000, auto: 1200, firstBuy: 'Tout le monde chante la berceuse. Faux, mais avec conviction.' },
+  { id: 'concert', category: 'caresses', name: 'Concert sous l’eau', desc: 'on n’entend rien, c’est magnifique · +45 000 /s', base: 1.5e8, auto: 45000, minMarees: 2, firstBuy: 'Premier concert sous l’eau. Le public a applaudi avec ses nageoires.' },
 
   // — Accessoires (portés par la loutre, visibles dans la scène)
   { id: 'noeud', category: 'accessoires', name: 'Nœud papillon', desc: 'elle se sent importante · +2 /caresse', base: 500, click: 2, firstBuy: 'La loutre porte un nœud papillon. Elle exige qu’on la vouvoie.' },
@@ -40,6 +44,8 @@ export const UPGRADES: Upgrade[] = [
   { id: 'echarpe', category: 'accessoires', name: 'Écharpe tricotée', desc: 'elle n’a pas froid, mais quand même · +60 /s', base: 18000, auto: 60 },
   { id: 'couronne', category: 'accessoires', name: 'Couronne d’algues', desc: 'elle se sent reine · +40 /caresse', base: 45000, click: 40, firstBuy: 'La loutre porte une couronne. Elle a nommé le rocher ministre.' },
   { id: 'collier', category: 'accessoires', name: 'Collier de coquillages', desc: 'ça fait clic-clic quand elle bouge · +300 /s', base: 250000, auto: 300 },
+  { id: 'cape', category: 'accessoires', name: 'Une cape', desc: 'elle flotte derrière elle, très dramatique · +3 500 /s', base: 6e6, auto: 3500, minMarees: 1, firstBuy: 'La loutre porte une cape. Elle refuse d’expliquer pourquoi.' },
+  { id: 'monocle', category: 'accessoires', name: 'Le monocle', desc: 'pour lire les petits caractères · +5 000 /caresse', base: 9e7, click: 5000, minMarees: 2 },
 
   // — Décors (posés dans la scène)
   { id: 'rocher', category: 'decors', name: 'Un rocher', desc: 'il ne fait rien · +1 /s', base: 120, auto: 1, firstBuy: 'Le rocher a été embauché. Il ne fait rien, mais il le fait bien.' },
@@ -47,6 +53,8 @@ export const UPGRADES: Upgrade[] = [
   { id: 'bateau', category: 'decors', name: 'Bateau en papier', desc: 'il ne va nulle part · +35 /s', base: 9000, auto: 35 },
   { id: 'parasol', category: 'decors', name: 'Un parasol', desc: 'pour l’ombre qu’il n’y a pas · +120 /s', base: 30000, auto: 120 },
   { id: 'phare', category: 'decors', name: 'Un phare', desc: 'il éclaire la flaque toute la nuit · +2 000 /s', base: 1200000, auto: 2000, max: 1, firstBuy: 'On a construit un phare. Les bateaux en papier sont soulagés.' },
+  { id: 'moulin', category: 'decors', name: 'Un moulin à eau', desc: 'il moud des galets en plus petits galets · +9 000 /s', base: 2e7, auto: 9000, minMarees: 1 },
+  { id: 'arcenciel', category: 'decors', name: 'Un arc-en-ciel', desc: 'en noir et blanc, par souci d’élégance · +150 000 /s', base: 7e8, auto: 150000, max: 1, minMarees: 3, firstBuy: 'Un arc-en-ciel au-dessus de la flaque. Il est gris. Tout le monde trouve ça très chic.' },
 
   // — Famille (le bébé, puis d'autres loutres)
   { id: 'bebe', category: 'famille', name: 'Le bébé', desc: 'il dort sur son ventre · +4 /s', base: 300, auto: 4, max: 1, firstBuy: 'Un bébé est apparu sur son ventre. Elle fait comme si c’était prévu.' },
@@ -54,6 +62,8 @@ export const UPGRADES: Upgrade[] = [
   { id: 'cousin', category: 'famille', name: 'Le cousin', desc: 'personne ne l’a invité · +250 /s', base: 60000, auto: 250, max: 1 },
   { id: 'jumeau', category: 'famille', name: 'Un deuxième bébé', desc: 'il dort à côté du premier · +150 /s', base: 80000, auto: 150, max: 1, requires: 'bebe', firstBuy: 'Un deuxième bébé ! La mère a deux pattes, c’est pile ce qu’il faut.' },
   { id: 'grandmere', category: 'famille', name: 'La grand-mère', desc: 'elle raconte des histoires · +900 /s', base: 300000, auto: 900, max: 1 },
+  { id: 'voisins', category: 'famille', name: 'Les voisins', desc: 'ils ont leur propre flaque, juste à côté · +20 000 /s', base: 6e7, auto: 20000, minMarees: 2 },
+  { id: 'colonie', category: 'famille', name: 'Toute une colonie', desc: 'on ne compte plus · +90 000 /s', base: 4e8, auto: 90000, minMarees: 3 },
 ]
 
 export interface GameSnapshot {
@@ -88,6 +98,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'castors', name: 'Les castors sont au courant', desc: 'une autre loutre', test: s => owns(s, 'amie'), toast: 'Les castors sont au courant. Ils ne disent rien.' },
   { id: 'riviere', name: 'Tout le monde vient', desc: 'acheter la rivière', test: s => owns(s, 'riviere') },
   { id: 'maree', name: 'Après le déluge', desc: 'une grande marée', test: s => s.marees >= 1, toast: 'Première grande marée. La loutre a gardé son calme, et une perle.' },
+  { id: 'pleine', name: 'Ça déborde', desc: 'remplir la flaque', test: s => s.galets >= 9.9e6 },
+  { id: 'milliard', name: 'Le milliard', desc: '1 000 000 000 galets', test: s => s.galets >= 1e9, toast: 'Un milliard de galets. La loutre est officiellement riche. Elle n’en revient pas.' },
   { id: 'marees5', name: 'Vieux loup de mer', desc: 'cinq grandes marées', test: s => s.marees >= 5 },
 ]
 
@@ -147,12 +159,24 @@ export const STORY: Chapter[] = [
     text: 'Un phare éclaire maintenant la flaque toute la nuit. Les loutres dorment avec un masque.' },
   { id: 'rumeur', title: 'La rumeur', test: s => s.totalGalets >= 100000 || s.marees > 0,
     text: 'La grand-mère avait raison : l’eau monte. Une grande marée se prépare. Elle emportera tout, sauf ce qu’on a appris.' },
+  { id: 'pleine', title: 'La flaque est pleine', test: s => s.galets >= 9.9e6,
+    text: 'La flaque est pleine. Les galets en trop roulent dans l’herbe. Il faudrait plus de place, ou beaucoup plus d’eau.' },
   { id: 'maree', title: 'La grande marée', test: s => s.marees >= 1,
     text: 'La marée est passée. Tout est à refaire. La loutre flotte de nouveau, seule, mais elle a gardé une perle dans sa poche.' },
   { id: 'retour', title: 'Le retour', test: s => s.marees >= 1 && owns(s, 'bebe'),
     text: 'Le bébé est revenu. Il a grandi pendant la marée. Il dit maintenant deux mots : « encore galet ».' },
+  { id: 'cape', title: 'La cape', test: s => owns(s, 'cape'),
+    text: 'Depuis la marée, la loutre porte une cape. Elle dit que c’est pour le vent. Il n’y a pas de vent.' },
+  { id: 'moulin', title: 'Le moulin', test: s => owns(s, 'moulin'),
+    text: 'Le moulin tourne jour et nuit. Personne ne sait ce qu’il moud. Les galets sont un peu plus ronds, peut-être.' },
   { id: 'perles', title: 'Le collier de perles', test: s => s.marees >= 2,
     text: 'Deuxième marée. La loutre range ses perles dans un coquillage. Elle les compte le soir, et se trompe à chaque fois.' },
+  { id: 'voisins', title: 'Les voisins', test: s => owns(s, 'voisins'),
+    text: 'Une autre flaque s’est formée juste à côté. Les voisins font la même chose, en moins bien. On les salue poliment.' },
   { id: 'legende', title: 'La légende', test: s => s.marees >= 3,
     text: 'On raconte qu’elle a vu trois marées. Les castors l’appellent « madame ». Elle n’a toujours rien demandé à personne.' },
+  { id: 'arcenciel', title: 'L’arc-en-ciel', test: s => owns(s, 'arcenciel'),
+    text: 'Un arc-en-ciel gris s’est posé sur la flaque. Le bébé a essayé de l’attraper. Il a presque réussi.' },
+  { id: 'milliard', title: 'Le milliard', test: s => s.galets >= 1e9,
+    text: 'Un milliard de galets. La loutre les a tous comptés, deux fois, puis elle s’est endormie au milieu. Fin. Elle flotte encore, si vous voulez.' },
 ]

@@ -582,7 +582,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Prop = { obj: THREE.Object3D; born: number; y0: number; splash: boolean; water: boolean; i: number }
   const props: Record<string, Prop[]> = {}
   let clock = 0 // ms, mis à jour par la boucle
-  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, phare: 1, jumeau: 1, grandmere: 1, sainte: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
+  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, avion: 1, phare: 1, jumeau: 1, grandmere: 1, sainte: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
 
   // ——— la bande : la première amie tient la patte de la mère ; les autres forment de petits
   // groupes (2 à 4) qui dérivent chacun à leur rythme autour d'elle, sans ordre précis
@@ -928,6 +928,84 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         spreadAdd(g)
         return { obj: g, parent: scene, water: false }
       }
+      case 'avion': {
+        // la loutre aviatrice : un biplan des années 1950 qui tourne au-dessus du plateau,
+        // en tirant une banderole « I ♥ OTTER »
+        const plane = new THREE.Group()
+        g.add(plane)
+        const hull = tone(0xf3f0ea), trim = tone(0x8f8a83)
+        // fuselage (le nez vers +x) et capot moteur
+        add(new THREE.CapsuleGeometry(0.28, 1.5, 6, 16), hull, plane, [0, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.95])
+        add(new THREE.CylinderGeometry(0.3, 0.3, 0.32, 16), trim, plane, [0.86, 0, 0], [0, 0, Math.PI / 2])
+        // les deux ailes, reliées par des mâts
+        ;[0.36, -0.22].forEach(y => add(new THREE.BoxGeometry(0.62, 0.05, 3.0), hull, plane, [0.25, y, 0]))
+        ;[-1.05, 1.05].forEach(z => [0.05, 0.45].forEach(x => {
+          const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.58, 4), black)
+          strut.position.set(x, 0.07, z)
+          plane.add(strut)
+        }))
+        // empennage
+        add(new THREE.BoxGeometry(0.4, 0.04, 1.0), hull, plane, [-0.95, 0.05, 0])
+        add(new THREE.BoxGeometry(0.38, 0.42, 0.04), trim, plane, [-0.98, 0.26, 0], [0, 0, -0.2])
+        // train d'atterrissage
+        ;[-0.32, 0.32].forEach(z => add(new THREE.SphereGeometry(0.09, 10, 8), black, plane, [0.42, -0.42, z], null, [1, 1, 0.6], false))
+        // hélice qui tourne
+        const prop = new THREE.Group()
+        prop.position.set(1.04, 0, 0)
+        plane.add(prop)
+        add(new THREE.BoxGeometry(0.03, 0.85, 0.08), black, prop, [0, 0, 0], null, null, false)
+        add(new THREE.SphereGeometry(0.07, 10, 8), trim, prop, [0.02, 0, 0])
+        // la pilote : une tête de loutre avec ses lunettes d'aviatrice, une écharpe au vent
+        const pilot = makeHead(plane, { ...MOM_LOOK, eyes: 'open' }, 77, true)
+        pilot.position.set(-0.1, 0.36, 0)
+        pilot.scale.setScalar(0.62)
+        ;[-1, 1].forEach(sd => add(ringGeo, black, pilot, [sd * 0.125, 0.06, 0.3], null, [1.9, 1.9, 1], false))
+        add(new THREE.BoxGeometry(0.46, 0.04, 0.04), black, pilot, [0, 0.1, 0.2], null, null, false)
+        const scarf = add(new THREE.BoxGeometry(0.5, 0.05, 0.12), tone(0xd6d1c6), plane, [-0.42, 0.28, 0.12])
+        // la banderole : deux faces (texte lisible des deux côtés), qui ondulent
+        const cv = document.createElement('canvas')
+        cv.width = 640
+        cv.height = 128
+        const ctx = cv.getContext('2d')!
+        const tex = new THREE.CanvasTexture(cv)
+        tex.colorSpace = THREE.SRGBColorSpace
+        tex.anisotropy = 4
+        const paint = () => {
+          ctx.fillStyle = '#fbfaf8'
+          ctx.fillRect(0, 0, 640, 128)
+          ctx.strokeStyle = '#1b1a18'
+          ctx.lineWidth = 8
+          ctx.strokeRect(4, 4, 632, 120)
+          ctx.fillStyle = '#1b1a18'
+          ctx.font = '700 76px "Space Mono", monospace'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText('I ♥ OTTER', 320, 68)
+          tex.needsUpdate = true
+        }
+        paint()
+        document.fonts?.ready.then(paint)
+        const bannerGeo = new THREE.PlaneGeometry(3.2, 0.64, 24, 1)
+        const banner = new THREE.Group()
+        banner.position.set(-3.6, 0.0, 0)
+        plane.add(banner)
+        const front = new THREE.Mesh(bannerGeo, new THREE.MeshBasicMaterial({ map: tex }))
+        const back = new THREE.Mesh(bannerGeo, new THREE.MeshBasicMaterial({ map: tex }))
+        back.rotation.y = Math.PI
+        banner.add(front, back)
+        // corde entre la queue (x = −1,1) et le bord avant de la banderole (x = −2,0)
+        const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.9, 4), black)
+        rope.rotation.z = Math.PI / 2
+        rope.position.set(-1.55, 0, 0)
+        plane.add(rope)
+        plane.scale.setScalar(0.9)
+        g.userData.plane = plane
+        g.userData.prop = prop
+        g.userData.scarf = scarf
+        g.userData.banner = bannerGeo
+        g.userData.base = bannerGeo.attributes.position.array.slice()
+        return { obj: g, parent: scene, water: false }
+      }
       case 'cascade': {
         // le ruisseau suit le plateau jusqu'au bord avant-droit, puis tombe dans le vide
         const ang = Math.PI / 2
@@ -1246,6 +1324,29 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           case 'cape': {
             const cloth = pr.obj.userData.cloth as THREE.Mesh
             cloth.scale.set(1 + Math.sin(t / 900) * 0.03, 1 + Math.sin(t / 650) * 0.06, 1)
+            break
+          }
+          case 'avion': {
+            // grande boucle au-dessus du plateau ; l'avion s'incline dans le virage
+            const plane = pr.obj.userData.plane as THREE.Object3D
+            const a = t / 9000
+            const rx = 6.2 * G, rz = 4.4 * G
+            const x = Math.cos(a) * rx, z = Math.sin(a) * rz
+            const dx = -Math.sin(a) * rx, dz = Math.cos(a) * rz
+            plane.position.set(x, 5.4 + Math.sin(t / 1300) * 0.25, z)
+            plane.rotation.set(0, Math.atan2(-dz, dx), 0)
+            plane.rotateX(-0.28) // inclinaison vers l'intérieur du virage
+            ;(pr.obj.userData.prop as THREE.Object3D).rotation.x = t / 25
+            ;(pr.obj.userData.scarf as THREE.Object3D).rotation.y = Math.sin(t / 90) * 0.3
+            // la banderole ondule
+            const geo = pr.obj.userData.banner as THREE.PlaneGeometry
+            const base = pr.obj.userData.base as Float32Array
+            const pos = geo.attributes.position
+            for (let k = 0; k < pos.count; k++) {
+              const bx = base[k * 3]
+              pos.setZ(k, Math.sin(bx * 2.2 - t / 140) * 0.12 * (1.6 - bx / 3.2))
+            }
+            pos.needsUpdate = true
             break
           }
           case 'cascade':

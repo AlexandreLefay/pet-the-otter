@@ -5,7 +5,9 @@ chaque caresse rapporte des **galets** (monnaie) qu'on dépense en amélioration
 Desktop d'abord, mobile ensuite. Textes du jeu en français.
 
 ## Stack
-Vite + React + TypeScript · three.js (scène 3D) · Zustand (état) · sauvegarde localStorage (`loutre-save-v2`).
+Vite + React + TypeScript · three.js (scène 3D) · Zustand (état) · sauvegarde localStorage par navigateur
+(clé `loutre-save-v2`, format versionné `v: 3`, relue par `sanitize()` ; toutes les 2 s, après chaque achat, et quand
+l'onglet est caché ou fermé ; export / import par code `LOUTRE-…` dans le menu « sauvegarde »).
 `npm run dev` · `npm run build` · `npm run build:single` (un seul HTML autonome dans dist/).
 
 ## Où est quoi

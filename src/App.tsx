@@ -7,6 +7,7 @@ import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './componen
 import { Achievements, Shop, Story, Tabs, type TabId } from './components/Panels'
 import { BlessingChooser, Ending, TidePanel } from './components/Tide'
 import { DebugMenu } from './components/DebugMenu'
+import { SaveMenu } from './components/SaveMenu'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('boutique')
@@ -35,6 +36,7 @@ export default function App() {
         <button className="link" onClick={() => setConfirming(true)}>recommencer</button>
       )}
       <SoundToggle />
+      <SaveMenu />
       <Toast />
       <Gains />
       <BlessingChooser />

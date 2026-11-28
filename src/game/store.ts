@@ -92,30 +92,84 @@ export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
 }
 
 // ——— sauvegarde
+// Chaque joueur a sa partie dans SON navigateur (localStorage) : rien n'est envoyé ailleurs.
+// Elle est écrite toutes les 2 s, après chaque achat ou marée, et quand l'onglet est caché ou fermé.
+const SAVE_VERSION = 3
+const EMPTY: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false }
+const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d)
+const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+
+/** Relit une sauvegarde (de n'importe quelle version) en ignorant ce qui est abîmé. */
+function sanitize(raw: unknown): SavedState {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const owned: Record<string, number> = {}
+  if (o.owned && typeof o.owned === 'object') {
+    for (const [k, v] of Object.entries(o.owned as Record<string, unknown>)) if (num(v) > 0) owned[k] = Math.floor(num(v))
+  }
+  return {
+    galets: num(o.galets),
+    totalGalets: num(o.totalGalets),
+    caresses: Math.floor(num(o.caresses)),
+    owned,
+    unlocked: strs(o.unlocked),
+    chapters: strs(o.chapters),
+    perles: Math.floor(num(o.perles)),
+    marees: Math.floor(num(o.marees)),
+    blessings: strs(o.blessings),
+    skills: strs(o.skills),
+    pending: Array.isArray(o.pending) ? strs(o.pending) : null,
+    finished: o.finished === true,
+  }
+}
+function snapshot(s: SavedState) {
+  const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished } = s
+  return { v: SAVE_VERSION, at: Date.now(), galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished }
+}
 function load(): SavedState {
-  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false }
   try {
     const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return empty
-    return { ...empty, ...JSON.parse(raw) }
+    return raw ? sanitize(JSON.parse(raw)) : { ...EMPTY }
   } catch {
-    return empty
+    return { ...EMPTY }
   }
 }
 function save(s: SavedState) {
   try {
-    const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished } = s
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished }))
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot(s)))
+    lastSaved = Date.now()
   } catch {
-    /* stockage indisponible : tant pis */
+    /* stockage indisponible (navigation privée stricte…) : la partie reste en mémoire */
+  }
+}
+let lastSaved = 0
+/** Heure de la dernière sauvegarde réussie (ms), 0 si aucune. */
+export const lastSaveTime = () => lastSaved
+
+/** Code de sauvegarde à copier, pour transférer sa partie sur un autre appareil. */
+export function exportSave() {
+  const json = JSON.stringify(snapshot(useGame.getState()))
+  return 'LOUTRE-' + btoa(String.fromCharCode(...new TextEncoder().encode(json)))
+}
+/** Charge un code de sauvegarde ; renvoie false s'il est illisible. */
+export function importSave(code: string) {
+  try {
+    const b64 = code.trim().replace(/^LOUTRE-/, '')
+    const json = new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))
+    const data = sanitize(JSON.parse(json))
+    useGame.setState({ ...data, humeur: 0, gains: [], toast: null, ending: false })
+    save(useGame.getState())
+    return true
+  } catch {
+    return false
   }
 }
 
+const initial = load()
 let uid = 0
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useGame = create<GameState>((set, get) => ({
-  ...load(),
+  ...initial,
   humeur: 0,
   toast: null,
   gains: [],
@@ -155,6 +209,7 @@ export const useGame = create<GameState>((set, get) => ({
     sound.buy(count(s.owned, id) + 1)
     if (first && u.firstBuy) get().notify(u.firstBuy)
     checkAchievements()
+    save(get())
   },
 
   tick: dt => {
@@ -278,14 +333,20 @@ export function startGameLoops() {
     const s = useGame.getState()
     if (!s.toast && s.caresses > 0 && Math.random() < 0.35) s.notify(IDLE_LINES[(Math.random() * IDLE_LINES.length) | 0])
   }, 20000)
+  // onglet fermé, rechargé, ou mis en arrière-plan (sur mobile, c'est souvent le dernier signal)
   const onHide = () => save(useGame.getState())
+  const onVisibility = () => { if (document.visibilityState === 'hidden') onHide() }
   window.addEventListener('beforeunload', onHide)
+  window.addEventListener('pagehide', onHide)
+  document.addEventListener('visibilitychange', onVisibility)
   return () => {
     started = false
     clearInterval(tick)
     clearInterval(slow)
     clearInterval(idle)
     window.removeEventListener('beforeunload', onHide)
+    window.removeEventListener('pagehide', onHide)
+    document.removeEventListener('visibilitychange', onVisibility)
   }
 }
 

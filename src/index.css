@@ -189,6 +189,14 @@ button { font: inherit; color: inherit; }
 .sound-toggle { position: absolute; left: 48px; bottom: 68px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 .sound-toggle:hover { color: var(--ink); }
 
+/* ——— Sauvegarde */
+.save-link { position: absolute; left: 48px; bottom: 92px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.save-link:hover { color: var(--ink); }
+.save-menu { position: absolute; left: 24px; bottom: 24px; z-index: 800; width: 320px; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; background: #fff; border: 2px solid var(--ink); box-shadow: var(--shadow); font-size: 12px; }
+.save-menu__text { margin: 0; color: var(--graphite); line-height: 1.45; text-wrap: pretty; }
+.save-menu__code { width: 100%; resize: none; font: 11px var(--font-text); padding: 6px; border: 1.5px solid var(--ink); background: var(--paper); word-break: break-all; }
+.save-menu__msg { color: var(--ink); }
+
 /* ——— Lien « recommencer » */
 .link { position: absolute; left: 48px; bottom: 44px; font-size: 12px; color: var(--graphite); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 .link:hover { color: var(--ink); }
@@ -214,6 +222,8 @@ button { font: inherit; color: inherit; }
   .panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; height: 206px; padding: 12px 20px 16px; border-left: 0; border-top: 2px solid var(--ink); }
   .link, .link-row { left: auto; right: 20px; bottom: auto; top: 64px; }
   .sound-toggle { left: auto; right: 20px; bottom: auto; top: 86px; }
+  .save-link { left: auto; right: 20px; bottom: auto; top: 108px; }
+  .save-menu { left: 12px; right: 12px; width: auto; bottom: auto; top: 12px; }
   .toast { bottom: auto; top: 120px; }
   .hint { top: 34%; }
 }

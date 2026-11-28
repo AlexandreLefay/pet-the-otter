@@ -468,12 +468,12 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
     body.rotation.z = 0.07
     root.add(body)
     add(torsoGeo, fur, body, [0, 0.05, 0], [0, 0, -Math.PI / 2])
-    add(waterlineGeo, black, body, [0, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 0.95], false)
+    add(waterlineGeo, black, body, [0, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 0.95], false).userData.waterline = true
     // plastron clair : le cou et le haut de la poitrine, comme la tête
     add(new THREE.SphereGeometry(0.33, 22, 16), pale, body, [0.7, 0.18, 0], null, [0.95, 0.75, 0.9])
     // queue plate
     add(tailGeo, fur, body, [-1.15, -0.04, 0], [0, 0, Math.PI / 2 + 0.12], [0.42, 1, 1.15])
-    add(new THREE.CapsuleGeometry(0.2, 0.62, 6, 16), black, body, [-1.15, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 1], false)
+    add(new THREE.CapsuleGeometry(0.2, 0.62, 6, 16), black, body, [-1.15, -0.112, 0], [0, 0, Math.PI / 2], [0.04, 1, 1], false).userData.waterline = true
     // pieds palmés dressés hors de l'eau
     ;[-1, 1].forEach(sd => {
       const foot = new THREE.Group()
@@ -1015,22 +1015,27 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
         const seat = (seed: number, look: Look) => {
           const holder = new THREE.Group()
           const o = makeOtter(seed, look, true)
-          o.root.rotation.z = Math.PI / 2 // debout : la tête en haut, le ventre vers l'avant
+          o.root.rotation.z = Math.PI / 2 // debout : la tête en haut, le ventre vers −x
           o.root.position.y = 1.05
+          // hors de l'eau, le trait de flottaison dessinerait une fente noire dans le dos
+          o.root.traverse(c => { if (c.userData.waterline) c.visible = false })
           holder.add(o.root)
           holder.scale.setScalar(0.55)
           return { holder, rig: o }
         }
         const dealer = seat(500, { ...lookFor(500), eyes: 'open', extra: 'none' })
-        dealer.holder.position.set(0, 0.25, -0.55)
-        dealer.holder.rotation.y = -Math.PI / 2 // le ventre (−x) vers +z, face au joueur
+        dealer.holder.position.set(0, 0.3, -0.62)
+        dealer.holder.rotation.y = Math.PI / 2 // le ventre (−x) tourné vers la table (+z)
+        // un tabouret pour le croupier aussi
+        add(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 18), wood, table, [0, 0.52, -0.62])
+        add(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), black, table, [0, 0.25, -0.62], null, null, false)
         table.add(dealer.holder)
         ;[-1, 1].forEach(sd => add(new THREE.ConeGeometry(0.06, 0.11, 10), bowMat, dealer.rig.head, [sd * 0.06, -0.3, 0.12], [0, 0, sd * Math.PI / 2]))
         const visor = add(new THREE.CylinderGeometry(0.3, 0.3, 0.02, 20, 1, false, -Math.PI / 2, Math.PI), tone(0xe6e2d9), dealer.rig.head, [0, 0.28, 0.08])
         visor.rotation.x = 0.35
         // la joueuse : la mère (même apparence), qui arrive de la mare quand on s'assoit
         const player = seat(7, MOM_LOOK)
-        player.holder.rotation.y = Math.PI / 2 // face au croupier
+        player.holder.rotation.y = -Math.PI / 2 // le ventre tourné vers la table (−z)
         player.holder.visible = false
         table.add(player.holder)
         table.rotation.y = -Math.PI / 4 // vue de profil : croupier à droite, joueuse à gauche
@@ -1730,8 +1735,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
       if (on) {
         // la table se cadre dans le haut de l'écran : le panneau de jeu occupe le bas
         tableObj.getWorldPosition(focusPt)
-        focusPt.x += Math.sin(yaw) * 0.85
-        focusPt.z += Math.cos(yaw) * 0.85
+        focusPt.x += Math.sin(yaw) * 0.45
+        focusPt.z += Math.cos(yaw) * 0.45
         seatStart = performance.now()
       }
     },

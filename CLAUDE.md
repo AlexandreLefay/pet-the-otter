@@ -25,13 +25,14 @@ Typo : Space Mono (titres, chiffres) + IBM Plex Mono (texte). Bordures 2 px, ang
 Le filtre « boil » ne s'applique pas au texte. Maquette de référence : artifact Claude « Loutre Design System ».
 
 ## État actuel
-Fait : scène 3D complète, boucle de jeu, 6 onglets (Caresses, Accessoires, Décors, Famille, Succès, Histoire),
+Fait : scène 3D complète, boucle de jeu, 3 onglets (Boutique, Succès, Histoire),
 13 améliorations (dont le bébé, achat unique), 10 succès, 8 chapitres d'histoire, notifications absurdes, sons,
 confirmation « recommencer » intégrée, mobile de base, curseur main dessinée (moufle avec le gant),
 logo (`public/logo.svg`, composant `LogoMark` dans Boil.tsx, aussi utilisé en favicon).
 Chaque achat est visible dans la scène : nœud papillon et lunettes sur la loutre, plume qui la chatouille,
-galets qu'elle jongle, rochers, nénuphars, vapeur du bain, rivière, amies en radeau qui se tiennent la patte,
-cousin à chapeau. Toutes les loutres se caressent.
+galets qu'elle jongle, rochers, nénuphars, vapeur du bain, rivière, amies en radeau (10 affichées au plus) qui se
+tiennent la patte, cousin à chapeau. Toutes les loutres se caressent. La mare grandit et la caméra recule avec
+la famille (`growthFor` / `applyGrowth`, variable G). Boutique sur un seul écran, dans la colonne de droite (`--side`).
 Déployé sur GitHub Pages à chaque push sur `main` : https://alexandrelefay.github.io/pet-the-otter/
 
 ## Prochaines étapes envisagées

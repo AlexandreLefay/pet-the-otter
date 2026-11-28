@@ -67,9 +67,6 @@ export function HandCursor() {
           {/* ombre dure décalée, comme les cartes de l'interface */}
           <path d={PAW} transform="translate(2.5 2.5)" fill="#1b1a18" opacity={0.14} />
           <g style={{ filter: 'var(--boil)' }} stroke="#1b1a18" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            {/* le bras, fourrure grise, qui arrive par le bas */}
-            <path d={ARM} fill="#99948c" />
-            <path d="M17 47 l-1 3 M22 46.5 l0 3.2 M27 47 l1 3" fill="none" strokeWidth={1.2} />
             {/* la patte : une moufle duveteuse */}
             <path d={PAW} fill={mitten ? '#dcd7cd' : '#f6f2ea'} />
             {mitten && <path d={KNIT} fill="none" strokeWidth={1.1} />}
@@ -102,6 +99,5 @@ export function HandCursor() {
 const PAW =
   'M8 25 C6.6 16 12.6 7.4 22 7.4 C31.4 7.4 37.4 16 36 25 ' +
   'C35.2 31.6 32.6 37.6 28.4 40.4 C25 42.6 19 42.6 15.6 40.4 C11.4 37.6 8.8 31.6 8 25 Z'
-const ARM = 'M14.6 38.6 C14 43 13.6 47 13.8 52 L30.2 52 C30.4 47 30 43 29.4 38.6 Z'
 // mailles du tricot (petits « v ») sur la moufle
 const KNIT = 'M11 30 l1.2 1.4 l1.2 -1.4 M31 30 l1.2 1.4 l1.2 -1.4 M15.5 37 l1.2 1.4 l1.2 -1.4 M26 37 l1.2 1.4 l1.2 -1.4 M20.8 39.5 l1.2 1.4 l1.2 -1.4'

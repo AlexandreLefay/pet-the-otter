@@ -117,7 +117,7 @@ button { font: inherit; color: inherit; }
 }
 
 /* ——— Gain flottant */
-.gain { position: fixed; z-index: 40; pointer-events: none; display: flex; align-items: center; gap: 4px; font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--galet-text); text-shadow: 2px 2px 0 var(--paper), -1px -1px 0 var(--paper), 1px -1px 0 var(--paper), -1px 1px 0 var(--paper), 3px 3px 0 var(--ink); filter: var(--boil); white-space: nowrap; animation: float-up 1150ms cubic-bezier(.2,.7,.3,1) forwards; }
+.gain { position: fixed; z-index: 40; pointer-events: none; display: flex; align-items: center; gap: 4px; font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--ink); text-shadow: 2px 2px 0 var(--paper), -1px -1px 0 var(--paper), 1px -1px 0 var(--paper), -1px 1px 0 var(--paper), 3px 3px 0 var(--pencil); filter: var(--boil); white-space: nowrap; animation: float-up 1150ms cubic-bezier(.2,.7,.3,1) forwards; }
 .gain--crit { font-size: 34px; }
 .gain svg { flex: none; }
 @keyframes float-up {

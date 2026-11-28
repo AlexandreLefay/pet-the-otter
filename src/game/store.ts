@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { ACHIEVEMENTS, COST_GROWTH, IDLE_LINES, MOODS, STORY, UPGRADES, type Upgrade } from './data'
 import { fmt } from './format'
 import { sound } from './sound'
+import { SKILLS, bonuses, drawBlessings, pearlGain, startingState, type PrestigeState } from './prestige'
 
 const SAVE_KEY = 'loutre-save-v2'
 
@@ -26,6 +27,13 @@ interface SavedState {
   unlocked: string[]
   /** chapitres de l'histoire déjà débloqués */
   chapters: string[]
+  // ——— grande marée (prestige) : tout ceci survit aux marées
+  perles: number
+  marees: number
+  blessings: string[]
+  skills: string[]
+  /** les trois bénédictions proposées, tant que le joueur n'a pas choisi */
+  pending: string[] | null
 }
 
 interface GameState extends SavedState {
@@ -40,18 +48,29 @@ interface GameState extends SavedState {
   tick: (dt: number) => void
   notify: (text: string, ms?: number) => void
   reset: () => void
+  /** déclenche la grande marée : on recommence, on gagne des perles, on choisira une bénédiction */
+  tide: () => void
+  chooseBlessing: (id: string) => void
+  buySkill: (id: string) => void
 }
 
 // ——— dérivés (fonctions pures, utilisables partout)
 export const count = (owned: Record<string, number>, id: string) => owned[id] || 0
-export const perClick = (owned: Record<string, number>) =>
-  1 + UPGRADES.reduce((t, u) => t + (u.click || 0) * count(owned, u.id), 0)
-export const perSecond = (owned: Record<string, number>) =>
-  UPGRADES.reduce((t, u) => t + (u.auto || 0) * count(owned, u.id), 0)
-export const multiplier = (humeur: number) => (humeur >= 80 ? 2 : 1)
+export { bonuses }
+/** Galets par caresse (améliorations × bonus de prestige), sans l'humeur. */
+export const perClick = (s: PrestigeState) => {
+  const b = bonuses(s)
+  return (1 + UPGRADES.reduce((t, u) => t + (u.click || 0) * count(s.owned, u.id), 0)) * b.click * b.global
+}
+/** Galets par seconde (améliorations × bonus de prestige). */
+export const perSecond = (s: PrestigeState) => {
+  const b = bonuses(s)
+  return UPGRADES.reduce((t, u) => t + (u.auto || 0) * count(s.owned, u.id), 0) * b.auto * b.global
+}
+export const multiplier = (humeur: number, moodBonus = 2) => (humeur >= 80 ? moodBonus : 1)
 export const moodLabel = (humeur: number) => MOODS.find(m => humeur >= m.min)!.label
-export const cost = (u: Upgrade, owned: Record<string, number>) =>
-  Math.ceil(u.base * Math.pow(COST_GROWTH, count(owned, u.id)))
+export const cost = (u: Upgrade, owned: Record<string, number>, mult = 1) =>
+  Math.ceil(u.base * Math.pow(COST_GROWTH, count(owned, u.id)) * mult)
 export const maxed = (u: Upgrade, owned: Record<string, number>) => u.max !== undefined && count(owned, u.id) >= u.max
 /** Il manque l'amélioration requise (ex. : le deuxième bébé demande le premier). */
 export const blocked = (u: Upgrade, owned: Record<string, number>) => !!u.requires && count(owned, u.requires) === 0
@@ -65,7 +84,7 @@ export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
 
 // ——— sauvegarde
 function load(): SavedState {
-  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [] }
+  const empty: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null }
   try {
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return empty
@@ -76,8 +95,8 @@ function load(): SavedState {
 }
 function save(s: SavedState) {
   try {
-    const { galets, totalGalets, caresses, owned, unlocked, chapters } = s
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked, chapters }))
+    const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending } = s
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending }))
   } catch {
     /* stockage indisponible : tant pis */
   }
@@ -95,7 +114,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   pet: (x, y) => {
     const s = get()
-    const gain = perClick(s.owned) * multiplier(s.humeur)
+    const b = bonuses(s)
+    const gain = perClick(s) * multiplier(s.humeur, b.mood) + perSecond(s) * b.echo
     const g: Gain = { id: ++uid, x, y, text: '+' + fmt(gain), rot: Math.random() * 16 - 8 }
     set({
       galets: s.galets + gain,
@@ -114,7 +134,7 @@ export const useGame = create<GameState>((set, get) => ({
     const s = get()
     const u = UPGRADES.find(x => x.id === id)
     if (!u) return
-    const c = cost(u, s.owned)
+    const c = cost(u, s.owned, bonuses(s).cost)
     if (s.galets < c || maxed(u, s.owned) || blocked(u, s.owned)) return
     const first = count(s.owned, id) === 0
     set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 } })
@@ -125,8 +145,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   tick: dt => {
     const s = get()
-    const inc = perSecond(s.owned) * dt
-    set({ galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * dt) })
+    const inc = perSecond(s) * dt
+    set({ galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * bonuses(s).decay * dt) })
   },
 
   notify: (text, ms = 4200) => {
@@ -141,7 +161,48 @@ export const useGame = create<GameState>((set, get) => ({
     } catch {
       /* rien */
     }
-    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], humeur: 0, gains: [], toast: null })
+    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, humeur: 0, gains: [], toast: null })
+  },
+
+  tide: () => {
+    const s = get()
+    const gain = pearlGain(s.totalGalets, s.blessings)
+    if (gain < 1 || s.pending) return
+    // on garde : perles, succès, histoire, bénédictions, compétences ; tout le reste repart de zéro
+    const start = startingState(s.blessings, s.skills)
+    set({
+      perles: s.perles + gain,
+      marees: s.marees + 1,
+      galets: start.galets,
+      totalGalets: 0,
+      owned: start.owned,
+      humeur: 0,
+      gains: [],
+      pending: drawBlessings(s.blessings),
+    })
+    sound.chapter()
+    save(get())
+    checkAchievements()
+  },
+
+  chooseBlessing: id => {
+    const s = get()
+    if (!s.pending?.includes(id)) return
+    const blessings = [...s.blessings, id]
+    // les bénédictions de départ s'appliquent tout de suite à la marée qui commence
+    const start = startingState([id], [])
+    set({ blessings, pending: null, galets: s.galets + start.galets, owned: { ...start.owned, ...s.owned } })
+    sound.success()
+    save(get())
+  },
+
+  buySkill: id => {
+    const s = get()
+    const k = SKILLS.find(x => x.id === id)
+    if (!k || s.skills.includes(id) || s.perles < k.cost || (k.requires && !s.skills.includes(k.requires))) return
+    set({ perles: s.perles - k.cost, skills: [...s.skills, id] })
+    sound.buy(s.skills.length + 1)
+    save(get())
   },
 }))
 

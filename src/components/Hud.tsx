@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { sound } from '../game/sound'
-import { useGame, perSecond, multiplier, moodLabel } from '../game/store'
+import { useGame, perSecond, multiplier, moodLabel, bonuses } from '../game/store'
 import { fmt, fmtRate } from '../game/format'
 import { GaletIcon, LogoMark } from './Boil'
 
@@ -18,7 +18,7 @@ export function Logo() {
 
 export function Counter() {
   const galets = useGame(s => s.galets)
-  const rate = useGame(s => perSecond(s.owned))
+  const rate = useGame(s => perSecond(s))
   return (
     <div className="counter">
       <div className="counter__row">
@@ -32,11 +32,12 @@ export function Counter() {
 
 export function Mood() {
   const humeur = useGame(s => s.humeur)
+  const moodBonus = useGame(s => bonuses(s).mood)
   return (
     <div className="mood">
       <div className="mood__row">
         <div>humeur</div>
-        <div>{moodLabel(humeur)} · ×{multiplier(humeur)}</div>
+        <div>{moodLabel(humeur)} · ×{multiplier(humeur, moodBonus)}</div>
       </div>
       <div className="gauge">
         <div className="gauge__fill" style={{ width: `${humeur}%` }} />

@@ -10,6 +10,7 @@ Vite + React + TypeScript · three.js (scène 3D) · Zustand (état) · sauvegar
 
 ## Où est quoi
 - `src/game/data.ts` — contenu : améliorations (4 catégories, `max` pour les achats uniques), succès, histoire (`STORY`, chapitres débloqués dans l'ordre), phrases absurdes, paliers d'humeur
+- `src/game/prestige.ts` — grande marée (prestige) : perles (`pearlGain`, seuil 100 k galets par partie), bénédictions au choix parmi trois (cumulables), arbre des perles (3 branches × 3 étages), `bonuses()` qui multiplie caresses / passif / coûts / humeur
 - `src/game/sound.ts` — sons synthétisés (Web Audio) : caresse, achat, succès, chapitre ; bouton muet (`loutre-muted`)
 - `src/game/store.ts` — état + boucle : caresse, achat, revenu passif (tick 100 ms), humeur (−7/s, ≥80 → ×2), succès, notifications, sauvegarde 2 s
 - `src/scene/otterScene.ts` — loutre de mer (`makeOtter`, réutilisé pour les amies et le cousin), bébé sur le ventre, achats visibles (`makeProp` / `syncProps`, appelés via `sync(owned)` depuis SceneView) ; scène three.js : caméra ortho isométrique, toon shading, contour encre qui « tremble », flaque masquée au stencil, loutre qui dérive, ondes ; clic ou glisser (1 caresse / 140 ms) → `onPet(x, y)`
@@ -25,8 +26,8 @@ Typo : Space Mono (titres, chiffres) + IBM Plex Mono (texte). Bordures 2 px, ang
 Le filtre « boil » ne s'applique pas au texte. Maquette de référence : artifact Claude « Loutre Design System ».
 
 ## État actuel
-Fait : scène 3D complète, boucle de jeu, 3 onglets (Boutique, Succès, Histoire),
-13 améliorations (dont le bébé, achat unique), 10 succès, 8 chapitres d'histoire, notifications absurdes, sons,
+Fait : scène 3D complète, boucle de jeu, 4 onglets (Boutique, Succès, Histoire, Marée — visible dès la première perle possible),
+24 améliorations (`max` pour les uniques, `requires` pour le deuxième bébé), 12 succès, 19 chapitres d'histoire, prestige, notifications absurdes, sons,
 confirmation « recommencer » intégrée, mobile de base, curseur main dessinée (moufle avec le gant),
 logo (`public/logo.svg`, composant `LogoMark` dans Boil.tsx, aussi utilisé en favicon).
 Chaque achat est visible dans la scène : nœud papillon et lunettes sur la loutre, plume qui la chatouille,

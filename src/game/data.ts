@@ -57,6 +57,7 @@ export const UPGRADES: Upgrade[] = [
 ]
 
 export interface GameSnapshot {
+  marees: number
   galets: number
   totalGalets: number
   caresses: number
@@ -86,6 +87,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'collection', name: 'Collectionneur', desc: '25 objets achetés', test: s => ownedTotal(s) >= 25 },
   { id: 'castors', name: 'Les castors sont au courant', desc: 'une autre loutre', test: s => owns(s, 'amie'), toast: 'Les castors sont au courant. Ils ne disent rien.' },
   { id: 'riviere', name: 'Tout le monde vient', desc: 'acheter la rivière', test: s => owns(s, 'riviere') },
+  { id: 'maree', name: 'Après le déluge', desc: 'une grande marée', test: s => s.marees >= 1, toast: 'Première grande marée. La loutre a gardé son calme, et une perle.' },
+  { id: 'marees5', name: 'Vieux loup de mer', desc: 'cinq grandes marées', test: s => s.marees >= 5 },
 ]
 
 /** Phrases qui tombent au hasard, de temps en temps. */
@@ -142,6 +145,14 @@ export const STORY: Chapter[] = [
     text: 'Le soir, toutes les loutres chantent la berceuse. Elles chantent faux. Les bébés dorment quand même.' },
   { id: 'phare', title: 'Le phare', test: s => owns(s, 'phare'),
     text: 'Un phare éclaire maintenant la flaque toute la nuit. Les loutres dorment avec un masque.' },
-  { id: 'rumeur', title: 'La rumeur', test: s => s.totalGalets >= 5e6,
+  { id: 'rumeur', title: 'La rumeur', test: s => s.totalGalets >= 100000 || s.marees > 0,
     text: 'La grand-mère avait raison : l’eau monte. Une grande marée se prépare. Elle emportera tout, sauf ce qu’on a appris.' },
+  { id: 'maree', title: 'La grande marée', test: s => s.marees >= 1,
+    text: 'La marée est passée. Tout est à refaire. La loutre flotte de nouveau, seule, mais elle a gardé une perle dans sa poche.' },
+  { id: 'retour', title: 'Le retour', test: s => s.marees >= 1 && owns(s, 'bebe'),
+    text: 'Le bébé est revenu. Il a grandi pendant la marée. Il dit maintenant deux mots : « encore galet ».' },
+  { id: 'perles', title: 'Le collier de perles', test: s => s.marees >= 2,
+    text: 'Deuxième marée. La loutre range ses perles dans un coquillage. Elle les compte le soir, et se trompe à chaque fois.' },
+  { id: 'legende', title: 'La légende', test: s => s.marees >= 3,
+    text: 'On raconte qu’elle a vu trois marées. Les castors l’appellent « madame ». Elle n’a toujours rien demandé à personne.' },
 ]

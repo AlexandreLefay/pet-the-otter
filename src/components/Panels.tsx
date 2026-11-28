@@ -1,8 +1,9 @@
-import { useGame, cost, count, isSeen, maxed, blocked } from '../game/store'
+import { useGame, cost, count, isSeen, maxed, blocked, bonuses } from '../game/store'
 import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
+import { TIDE_THRESHOLD } from '../game/prestige'
 
-export type TabId = 'boutique' | 'succes' | 'histoire'
+export type TabId = 'boutique' | 'succes' | 'histoire' | 'maree'
 
 const SECTIONS: { id: Category; name: string }[] = [
   { id: 'caresses', name: 'Caresses' },
@@ -15,13 +16,16 @@ export const TABS: { id: TabId; name: string }[] = [
   { id: 'boutique', name: 'Boutique' },
   { id: 'succes', name: 'Succès' },
   { id: 'histoire', name: 'Histoire' },
+  { id: 'maree', name: 'Marée' },
 ]
 
 export function Tabs({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
   const unlocked = useGame(s => s.unlocked.length)
+  // l'onglet Marée n'apparaît qu'une fois la première perle à portée
+  const tideOpen = useGame(s => s.marees > 0 || s.perles > 0 || s.totalGalets >= TIDE_THRESHOLD)
   return (
     <nav className="tabs">
-      {TABS.map(t => (
+      {TABS.filter(t => t.id !== 'maree' || tideOpen).map(t => (
         <button key={t.id} className={'tab' + (t.id === active ? ' tab--active' : '')} onClick={() => onChange(t.id)}>
           <span className="tab__dot" />
           <span>{t.id === 'succes' ? `Succès ${unlocked}/${ACHIEVEMENTS.length}` : t.name}</span>
@@ -51,6 +55,7 @@ function ShopItems({ category }: { category: Category }) {
   const galets = useGame(s => s.galets)
   const owned = useGame(s => s.owned)
   const buy = useGame(s => s.buy)
+  const costMult = useGame(s => bonuses(s).cost)
   // on montre ce qui est déjà découvert, plus une seule carte mystère par section
   const all = UPGRADES.filter(u => u.category === category)
   const firstHidden = all.find(u => !isSeen(u, { galets, owned }))
@@ -58,7 +63,7 @@ function ShopItems({ category }: { category: Category }) {
   return (
     <>
       {items.map(u => {
-        const c = cost(u, owned)
+        const c = cost(u, owned, costMult)
         const seen = isSeen(u, { galets, owned })
         const full = maxed(u, owned)
         const locked = blocked(u, owned)

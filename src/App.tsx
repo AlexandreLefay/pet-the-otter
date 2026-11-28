@@ -5,6 +5,7 @@ import { SceneView } from './components/SceneView'
 import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './components/Hud'
 import { Achievements, Shop, Story, Tabs, type TabId } from './components/Panels'
+import { BlessingChooser, TidePanel } from './components/Tide'
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('boutique')
@@ -22,7 +23,7 @@ export default function App() {
       <Counter />
       <Mood />
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : <Shop />}
+      {tab === 'succes' ? <Achievements /> : tab === 'histoire' ? <Story /> : tab === 'maree' ? <TidePanel /> : <Shop />}
       {confirming ? (
         <div className="link-row">
           <span>tout recommencer ?</span>
@@ -35,6 +36,7 @@ export default function App() {
       <SoundToggle />
       <Toast />
       <Gains />
+      <BlessingChooser />
       <HandCursor />
     </div>
   )

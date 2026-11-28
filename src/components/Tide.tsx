@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { sound } from '../game/sound'
 import { useGame } from '../game/store'
 import { BLESSINGS, GOAL, SKILLS, SKILL_BRANCHES, TIDE_THRESHOLD, capacity, pearlGain } from '../game/prestige'
 import { fmt } from '../game/format'
@@ -161,6 +162,7 @@ export function Ending() {
   if (!ending) return null
   return (
     <div className="chooser" role="dialog" aria-label="Fin">
+      <Fireworks />
       <div className="chooser__title">Fin.</div>
       <div className="chooser__sub">
         Un milliard de galets. La loutre les a tous comptés, deux fois, puis elle s’est endormie au milieu.
@@ -173,4 +175,84 @@ export function Ending() {
       <button className="tide__btn" style={{ marginTop: 18 }} onClick={close}>continuer à flotter</button>
     </div>
   )
+}
+
+/**
+ * Feu d'artifice à l'encre : des gerbes de traits noirs et de petits galets bleus qui
+ * éclatent, retombent et s'effacent, tant que l'écran de fin est ouvert.
+ */
+function Fireworks() {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const cv = ref.current
+    const ctx = cv?.getContext('2d')
+    if (!cv || !ctx) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    type P = { x: number; y: number; px: number; py: number; vx: number; vy: number; life: number; max: number; blue: boolean }
+    const parts: P[] = []
+    let raf = 0, last = performance.now(), nextBurst = 0, bursts = 0
+    const fit = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      cv.width = cv.clientWidth * dpr
+      cv.height = cv.clientHeight * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    const burst = () => {
+      const w = cv.clientWidth, h = cv.clientHeight
+      const x = w * (0.1 + Math.random() * 0.8), y = h * (0.07 + Math.random() * 0.2)
+      const n = reduce ? 14 : 34
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.2
+        const sp = 110 + Math.random() * 120
+        parts.push({ x, y, px: x, py: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 0.9 + Math.random() * 0.5, blue: Math.random() < 0.3 })
+      }
+      if (bursts++ < 12) sound.buy(4 + (bursts % 6))
+    }
+    const loop = (t: number) => {
+      raf = requestAnimationFrame(loop)
+      const dt = Math.min(0.05, (t - last) / 1000)
+      last = t
+      if (t > nextBurst) { burst(); nextBurst = t + (reduce ? 1600 : 520 + Math.random() * 500) }
+      ctx.clearRect(0, 0, cv.clientWidth, cv.clientHeight)
+      ctx.lineCap = 'round'
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i]
+        p.life += dt
+        if (p.life >= p.max) { parts.splice(i, 1); continue }
+        p.px = p.x; p.py = p.y
+        p.vy += 90 * dt // ça retombe
+        p.vx *= 1 - dt * 0.9; p.vy *= 1 - dt * 0.4
+        p.x += p.vx * dt; p.y += p.vy * dt
+        const k = 1 - p.life / p.max
+        ctx.globalAlpha = Math.min(1, k * 1.6)
+        if (p.blue) {
+          // un petit galet bleu
+          ctx.fillStyle = '#4a8fd4'
+          ctx.strokeStyle = '#1b1a18'
+          ctx.lineWidth = 1.4
+          ctx.beginPath()
+          ctx.ellipse(p.x, p.y, 4.2, 2.8, Math.atan2(p.vy, p.vx), 0, Math.PI * 2)
+          ctx.fill()
+          ctx.stroke()
+        } else {
+          // un trait d'encre, qui s'allonge avec la vitesse
+          ctx.strokeStyle = '#1b1a18'
+          ctx.lineWidth = 2.2 * k + 0.6
+          ctx.beginPath()
+          ctx.moveTo(p.x - p.vx * 0.05, p.y - p.vy * 0.05)
+          ctx.lineTo(p.x, p.y)
+          ctx.stroke()
+        }
+      }
+      ctx.globalAlpha = 1
+    }
+    raf = requestAnimationFrame(loop)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', fit)
+    }
+  }, [])
+  return <canvas ref={ref} className="fireworks" aria-hidden />
 }

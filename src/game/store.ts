@@ -36,7 +36,29 @@ interface SavedState {
   pending: string[] | null
   /** le milliard a été atteint (l'écran de fin a été montré) */
   finished: boolean
+  /** statistiques de toute la partie (survivent aux marées, effacées par « recommencer ») */
+  stats: Stats
 }
+
+export interface Stats {
+  /** galets gagnés depuis le tout début, toutes marées confondues */
+  allGalets: number
+  /** temps de jeu, onglet ouvert (s) */
+  playSec: number
+  /** achats effectués */
+  buys: number
+  /** perles gagnées au total */
+  pearlsEarned: number
+  /** caresses à ×10 (L'éclat) */
+  crits: number
+  /** record de galets par seconde */
+  bestRate: number
+  /** date de la première caresse (ms), 0 avant */
+  startedAt: number
+  /** date du milliard (ms), 0 avant */
+  finishedAt: number
+}
+export const EMPTY_STATS: Stats = { allGalets: 0, playSec: 0, buys: 0, pearlsEarned: 0, crits: 0, bestRate: 0, startedAt: 0, finishedAt: 0 }
 
 interface GameState extends SavedState {
   humeur: number
@@ -95,7 +117,7 @@ export function isSeen(u: Upgrade, s: Pick<SavedState, 'galets' | 'owned'>) {
 // Chaque joueur a sa partie dans SON navigateur (localStorage) : rien n'est envoyé ailleurs.
 // Elle est écrite toutes les 2 s, après chaque achat ou marée, et quand l'onglet est caché ou fermé.
 const SAVE_VERSION = 3
-const EMPTY: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false }
+const EMPTY: SavedState = { galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, stats: { ...EMPTY_STATS } }
 const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : d)
 const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
 
@@ -119,11 +141,19 @@ function sanitize(raw: unknown): SavedState {
     skills: strs(o.skills),
     pending: Array.isArray(o.pending) ? strs(o.pending) : null,
     finished: o.finished === true,
+    stats: (() => {
+      const st = (o.stats && typeof o.stats === 'object' ? o.stats : {}) as Record<string, unknown>
+      const out = { ...EMPTY_STATS }
+      ;(Object.keys(out) as (keyof Stats)[]).forEach(k => { out[k] = num(st[k]) })
+      // anciennes parties : au moins les galets de la marée en cours
+      out.allGalets = Math.max(out.allGalets, num(o.totalGalets))
+      return out
+    })(),
   }
 }
 function snapshot(s: SavedState) {
-  const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished } = s
-  return { v: SAVE_VERSION, at: Date.now(), galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished }
+  const { galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished, stats } = s
+  return { v: SAVE_VERSION, at: Date.now(), galets, totalGalets, caresses, owned, unlocked, chapters, perles, marees, blessings, skills, pending, finished, stats }
 }
 function load(): SavedState {
   try {
@@ -188,6 +218,7 @@ export const useGame = create<GameState>((set, get) => ({
       galets: s.galets + kept,
       totalGalets: s.totalGalets + kept,
       caresses: s.caresses + 1,
+      stats: { ...s.stats, allGalets: s.stats.allGalets + kept, crits: s.stats.crits + (crit ? 1 : 0), startedAt: s.stats.startedAt || Date.now() },
       humeur: Math.min(100, s.humeur + 5),
       gains: [...s.gains.slice(-20), g],
       petTick: s.petTick + 1,
@@ -205,7 +236,7 @@ export const useGame = create<GameState>((set, get) => ({
     const c = cost(u, s.owned, bonuses(s).cost)
     if (s.galets < c || maxed(u, s.owned) || blocked(u, s.owned) || tooEarly(u, s.marees)) return
     const first = count(s.owned, id) === 0
-    set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 } })
+    set({ galets: s.galets - c, owned: { ...s.owned, [id]: count(s.owned, id) + 1 }, stats: { ...s.stats, buys: s.stats.buys + 1 } })
     sound.buy(count(s.owned, id) + 1)
     if (first && u.firstBuy) get().notify(u.firstBuy)
     checkAchievements()
@@ -214,8 +245,12 @@ export const useGame = create<GameState>((set, get) => ({
 
   tick: dt => {
     const s = get()
-    const inc = Math.max(0, Math.min(perSecond(s) * dt, capacity(s) - s.galets))
-    set({ galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * bonuses(s).decay * dt) })
+    const rate = perSecond(s)
+    const inc = Math.max(0, Math.min(rate * dt, capacity(s) - s.galets))
+    const st = s.stats
+    set({
+      stats: { ...st, allGalets: st.allGalets + inc, playSec: st.playSec + dt, bestRate: Math.max(st.bestRate, rate) },
+      galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * bonuses(s).decay * dt) })
   },
 
   notify: (text, ms = 4200) => {
@@ -230,7 +265,7 @@ export const useGame = create<GameState>((set, get) => ({
     } catch {
       /* rien */
     }
-    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, ending: false, humeur: 0, gains: [], toast: null })
+    set({ galets: 0, totalGalets: 0, caresses: 0, owned: {}, unlocked: [], chapters: [], perles: 0, marees: 0, blessings: [], skills: [], pending: null, finished: false, stats: { ...EMPTY_STATS }, ending: false, humeur: 0, gains: [], toast: null })
   },
 
   tide: () => {
@@ -241,6 +276,7 @@ export const useGame = create<GameState>((set, get) => ({
     const start = startingState(s.blessings, s.skills)
     set({
       perles: s.perles + gain,
+      stats: { ...s.stats, pearlsEarned: s.stats.pearlsEarned + gain },
       marees: s.marees + 1,
       galets: start.galets,
       totalGalets: 0,
@@ -287,7 +323,7 @@ function checkAchievements() {
 function checkGoal() {
   const s = useGame.getState()
   if (s.finished || s.galets < GOAL) return
-  useGame.setState({ finished: true, ending: true })
+  useGame.setState({ finished: true, ending: true, stats: { ...s.stats, finishedAt: Date.now() } })
   sound.chapter()
   save(useGame.getState())
 }

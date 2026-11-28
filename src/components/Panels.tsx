@@ -1,9 +1,9 @@
 import { useGame, cost, count, isSeen, maxed, blocked, bonuses, tooEarly } from '../game/store'
 import { ACHIEVEMENTS, STORY, UPGRADES, type Category } from '../game/data'
 import { fmt } from '../game/format'
-import { TIDE_THRESHOLD } from '../game/prestige'
+import { SKILLS, TIDE_THRESHOLD } from '../game/prestige'
 
-export type TabId = 'boutique' | 'succes' | 'histoire' | 'maree'
+export type TabId = 'boutique' | 'succes' | 'histoire' | 'maree' | 'stats'
 
 const SECTIONS: { id: Category; name: string }[] = [
   { id: 'caresses', name: 'Caresses' },
@@ -17,6 +17,7 @@ export const TABS: { id: TabId; name: string }[] = [
   { id: 'succes', name: 'Succès' },
   { id: 'histoire', name: 'Histoire' },
   { id: 'maree', name: 'Marée' },
+  { id: 'stats', name: 'Stats' },
 ]
 
 export function Tabs({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
@@ -124,6 +125,52 @@ export function Story() {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+const duration = (sec: number) => {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60)
+  return h ? `${h} h ${String(m).padStart(2, '0')}` : m ? `${m} min` : `${Math.floor(sec)} s`
+}
+const day = (ms: number) => (ms ? new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')
+
+/** Onglet « Stats » : les chiffres de toute la partie. */
+export function Stats() {
+  const s = useGame()
+  const st = s.stats
+  const otters = 1 + (s.owned.bebe || 0) + (s.owned.jumeau || 0) + (s.owned.amie || 0) + (s.owned.cousin || 0) + (s.owned.grandmere || 0) + 3 * (s.owned.voisins || 0)
+  const items = Object.values(s.owned).reduce((a, b) => a + b, 0)
+  const rows: [string, string][] = [
+    ['temps de jeu', duration(st.playSec)],
+    ['caresses', fmt(s.caresses)],
+    ['galets gagnés au total', fmt(st.allGalets)],
+    ['galets gagnés depuis la dernière marée', fmt(s.totalGalets)],
+    ['record de galets / s', fmt(st.bestRate)],
+    ['achats effectués', fmt(st.buys)],
+    ['objets en ce moment', fmt(items)],
+    ['loutres dans la mare', fmt(otters)],
+    ['grandes marées', fmt(s.marees)],
+    ['perles gagnées', fmt(st.pearlsEarned)],
+    ['bénédictions', fmt(s.blessings.length)],
+    ['compétences', `${s.skills.length} / ${SKILLS.length}`],
+    ['coups d’éclat (×10)', fmt(st.crits)],
+    ['succès', `${s.unlocked.length} / ${ACHIEVEMENTS.length}`],
+    ['chapitres lus', `${s.chapters.length} / ${STORY.length}`],
+    ['première caresse', day(st.startedAt)],
+    ['le milliard', st.finishedAt ? day(st.finishedAt) : 'pas encore'],
+  ]
+  return (
+    <div className="panel">
+      <h3 className="shop__title">Statistiques</h3>
+      <dl className="stats">
+        {rows.map(([k, v]) => (
+          <div key={k} className="stats__row">
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }

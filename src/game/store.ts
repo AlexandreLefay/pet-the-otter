@@ -77,6 +77,8 @@ interface GameState extends SavedState {
   buy: (id: string) => void
   tick: (dt: number) => void
   notify: (text: string, ms?: number) => void
+  /** ferme le message affiché (un toucher dessus) et passe au suivant */
+  dismissToast: () => void
   reset: () => void
   /** déclenche la grande marée : on recommence, on gagne des perles, on choisira une bénédiction */
   tide: () => void
@@ -269,6 +271,14 @@ export const useGame = create<GameState>((set, get) => ({
     set({
       stats: { ...st, allGalets: st.allGalets + inc, playSec: st.playSec + dt, bestRate: Math.max(st.bestRate, rate) },
       galets: s.galets + inc, totalGalets: s.totalGalets + inc, humeur: Math.max(0, s.humeur - 7 * bonuses(s).decay * dt) })
+  },
+
+  dismissToast: () => {
+    if (!get().toast) return
+    clearTimeout(toastTimer)
+    set({ toast: null })
+    const next = toastQueue.shift()
+    if (next) toastTimer = setTimeout(() => get().notify(next.text, next.ms), 250)
   },
 
   notify: (text, ms = 4200) => {

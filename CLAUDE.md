@@ -46,6 +46,4 @@ Déployé sur GitHub Pages à chaque push sur `main` : https://alexandrelefay.gi
 
 ## Workflow
 Commits au format Conventional Commits (`feat:`, `fix:`, `style:`…), titre court à l'impératif, corps qui explique quoi et pourquoi.
-Ne pas pousser sans accord : Alexandre valide d'abord en local (`npm run dev`, http://localhost:5173), puis demande le push
-(un push sur `main` redéploie GitHub Pages).
-Les sessions Cowork ne peuvent pas `git push` : Claude modifie et commit, Alexandre pousse depuis son terminal.
+Claude peut pousser `main` directement après chaque changement (accord d'Alexandre du 28/11) ; un push redéploie GitHub Pages.

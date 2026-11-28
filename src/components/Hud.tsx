@@ -67,9 +67,10 @@ export function Mood() {
 
 export function Toast() {
   const toast = useGame(s => s.toast)
+  const dismiss = useGame(s => s.dismissToast)
   if (!toast) return null
   return (
-    <div className="toast" key={toast.id}>
+    <div className="toast" key={toast.id} onClick={dismiss} role="status" title="toucher pour fermer">
       <div className="toast__dot" />
       <div>{toast.text}</div>
     </div>

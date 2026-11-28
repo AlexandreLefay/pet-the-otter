@@ -2,7 +2,6 @@
 // createOtterScene(el, { onPet }) → { dispose() }
 // Le conteneur doit avoir une taille ; le canvas le remplit et suit ses redimensionnements.
 import * as THREE from 'three'
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
@@ -33,13 +32,23 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const FR = 11.2
   /** Taille de la mare : 1 au départ, grandit avec la famille (voir growthFor). */
   let G = 1
-  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200)
-  // visée un peu en avant du centre : le coin avant du plateau (et ses bordures) reste
-  // visible en bas de l'écran, le reste du plateau déborde et remplit toute la zone de jeu
-  const AIM = 0.6
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 300)
+  // Caméra en orbite autour du plateau : `yaw` (rotation, réglable par le joueur) et une
+  // élévation un peu plus basse que l'isométrie stricte (35,26°) pour accentuer le relief.
+  // Visée un peu en avant du centre : le bord avant du plateau reste visible en bas de l'écran,
+  // le reste du plateau déborde et remplit toute la zone de jeu.
+  const ELEVATION = THREE.MathUtils.degToRad(28)
+  const AIM = 0.85
+  let yaw = Math.PI / 4, yawTarget = yaw
+  const camDir = new THREE.Vector3()
+  const camEye = new THREE.Vector3()
   const aimCam = () => {
-    cam.position.set(14 + AIM * G, 14, 14 + AIM * G)
-    cam.lookAt(AIM * G, 0, AIM * G)
+    camEye.set(Math.cos(ELEVATION) * Math.sin(yaw), Math.sin(ELEVATION), Math.cos(ELEVATION) * Math.cos(yaw))
+    const tx = Math.sin(yaw) * AIM * G, tz = Math.cos(yaw) * AIM * G
+    cam.position.set(tx + camEye.x * 30, camEye.y * 30, tz + camEye.z * 30)
+    cam.lookAt(tx, 0, tz)
+    // direction vers laquelle les têtes se tournent (un peu au-dessus de la caméra)
+    camDir.copy(camEye).add(new THREE.Vector3(0, 0.3, 0)).normalize()
   }
   aimCam()
   const resize = () => {
@@ -91,33 +100,34 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   scene.add(plateau)
   const slabMat = new THREE.MeshToonMaterial({ color: 0xd7d2c8, gradientMap: grad })
   const topMat = new THREE.MeshToonMaterial({ color: 0xf3f0ea, gradientMap: grad })
-  const SLAB = 14
-  const slabGeo = new RoundedBoxGeometry(SLAB, 0.8, SLAB, 4, 0.3)
+  // Plateau rond : vu sous n'importe quel angle (on peut tourner la vue), il remplit l'écran
+  // et laisse voir sa tranche en bas, comme un grand disque de terre.
+  const SLAB_R = 11.5
+  const slabGeo = new THREE.CylinderGeometry(SLAB_R, SLAB_R * 0.985, 0.8, 96)
   const slab = new THREE.Mesh(slabGeo, slabMat)
   slab.position.y = -0.42
   slab.receiveShadow = true
   plateau.add(slab)
-  const top = new THREE.Mesh(new RoundedBoxGeometry(SLAB - 0.04, 0.06, SLAB - 0.04, 4, 0.03), topMat)
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(SLAB_R - 0.03, SLAB_R - 0.03, 0.06, 96), topMat)
   top.position.y = -0.03
   top.receiveShadow = true
   plateau.add(top)
-  // contour encre de la dalle
+  // contour encre du disque
   const slabInk = new THREE.Mesh(slabGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }))
   slabInk.position.copy(slab.position)
-  slabInk.scale.set(1.006, 1.05, 1.008)
+  slabInk.scale.set(1.006, 1.05, 1.006)
   plateau.add(slabInk)
-  // quelques traits de terre sur la tranche
-  // quelques traits de terre sur les deux tranches visibles (côtés +x et +z)
-  for (let i = 0; i < 18; i++) {
+  // traits de terre tout autour de la tranche
+  for (let i = 0; i < 40; i++) {
+    const a = (i / 40) * Math.PI * 2 + (i % 3) * 0.05
     const m = new THREE.Mesh(new THREE.PlaneGeometry(0.5 + (i % 3) * 0.3, 0.02), new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.45 }))
-    const along = -SLAB / 2 + 1 + ((i * 7.3) % (SLAB - 2))
-    if (i % 2) { m.position.set(SLAB / 2 + 0.01, -0.3 - (i % 3) * 0.15, along); m.rotation.y = Math.PI / 2 }
-    else m.position.set(along, -0.3 - (i % 3) * 0.15, SLAB / 2 + 0.01)
+    m.position.set(Math.sin(a) * (SLAB_R + 0.01), -0.3 - (i % 3) * 0.15, Math.cos(a) * (SLAB_R + 0.01))
+    m.rotation.y = a
     plateau.add(m)
   }
   // capteur d'ombres posé sur le plateau (et sur l'eau) : des ombres franches, comme les
   // ombres dures de l'interface, quelle que soit la lumière ambiante
-  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(SLAB, SLAB), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
+  const shadowCatcher = new THREE.Mesh(new THREE.CircleGeometry(SLAB_R, 96), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
   shadowCatcher.rotation.x = -Math.PI / 2
   shadowCatcher.position.y = 0.03
   shadowCatcher.receiveShadow = true
@@ -811,7 +821,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'riviere': {
         // un bras de rivière qui arrive par l'arrière et se jette dans la flaque
         const sh = new THREE.Shape()
-        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-6.95, 0, -5.0), new THREE.Vector3(-5.2, 0, -3.8), new THREE.Vector3(-3.4, 0, -2.5), new THREE.Vector3(-1.8, 0, -1.2)])
+        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-9.3, 0, -6.6), new THREE.Vector3(-6.0, 0, -4.4), new THREE.Vector3(-3.4, 0, -2.5), new THREE.Vector3(-1.8, 0, -1.2)])
         const pts = path.getPoints(40)
         const side = (sgn: number) => pts.map((q, k) => {
           const tan = path.getTangent(k / 40)
@@ -926,11 +936,26 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     squish = 1
     onPet?.(e.clientX, e.clientY)
   }
+  // clic droit (ou molette) glissé : on fait tourner le plateau
+  let turning = false, turnX = 0
   const onDown = (e: PointerEvent) => {
+    if (e.button === 1 || e.button === 2) {
+      turning = true
+      turnX = e.clientX
+      e.preventDefault()
+      return
+    }
     dragging = true
     if (hits(e)) pet(e, true)
   }
   const onMove = (e: PointerEvent) => {
+    if (turning) {
+      yawTarget -= (e.clientX - turnX) * 0.008
+      yaw = yawTarget
+      turnX = e.clientX
+      aimCam()
+      return
+    }
     const over = hits(e)
     el.style.cursor = over ? (dragging ? 'grabbing' : 'grab') : 'default'
     document.documentElement.toggleAttribute(OTTER_HOVER_ATTR, over)
@@ -939,16 +964,17 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     pet(e, false)
     if (Math.random() < 0.35) ripple(false)
   }
-  const onUp = () => { dragging = false }
+  const onUp = () => { dragging = false; turning = false }
+  const noMenu = (e: Event) => e.preventDefault()
   const onLeave = () => document.documentElement.removeAttribute(OTTER_HOVER_ATTR)
   el.addEventListener('pointerdown', onDown)
   el.addEventListener('pointermove', onMove)
   el.addEventListener('pointerleave', onLeave)
+  el.addEventListener('contextmenu', noMenu)
   window.addEventListener('pointerup', onUp)
   window.addEventListener('pointercancel', onUp)
 
   // ——— boucle
-  const camDir = new THREE.Vector3(1, 1, 1).normalize().add(new THREE.Vector3(0, 0.3, 0)).normalize()
   const gUp = new THREE.Vector3(), gFwd = new THREE.Vector3(), gq = new THREE.Quaternion(), gp = new THREE.Vector3()
   /** Oriente une tête : face à nous, légèrement inclinée vers le ciel et vers l'avant. */
   const gaze = (h: THREE.Object3D) => {
@@ -1175,6 +1201,10 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     favPebble.position.set(0.1 - 0.42 * hug, 0.06, 0)
     favPebble.visible = !props.galet?.length
     clock = t
+    if (Math.abs(yawTarget - yaw) > 0.0005) {
+      yaw += (yawTarget - yaw) * Math.min(1, dt * 7)
+      aimCam()
+    }
     if (Math.abs(gTarget - G) > 0.001) {
       // la mare s'élargit et la caméra recule doucement (environ 2 s)
       G += (gTarget - G) * Math.min(1, dt * 1.6)
@@ -1202,6 +1232,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
 
   return {
     sync,
+    /** Fait tourner la vue d'un huitième de tour (dir = 1 ou -1). */
+    rotate(dir: number) { yawTarget += (dir * Math.PI) / 4 },
     dispose() {
       cancelAnimationFrame(raf)
       clearInterval(boil)
@@ -1210,6 +1242,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointermove', onMove)
       el.removeEventListener('pointerleave', onLeave)
+      el.removeEventListener('contextmenu', noMenu)
       onLeave()
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)

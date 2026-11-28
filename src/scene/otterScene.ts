@@ -1243,14 +1243,6 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
         m.position.y = 0.018
         m.receiveShadow = true
         g.add(m)
-        // reflets qui descendent le courant
-        for (let k = 0; k < 9; k++) {
-          const d = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.03), shine)
-          d.rotation.x = -Math.PI / 2
-          d.userData.u = k / 9
-          d.userData.off = (k % 3 - 1) * 0.25
-          g.add(d)
-        }
         g.userData.path = path
         river = g
         return { obj: g, parent: scene, water: true }
@@ -1624,17 +1616,6 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: O
               ;(n.userData.mat as THREE.MeshBasicMaterial).opacity = Math.sin(ph * Math.PI) * 0.85
             })
             break
-          case 'riviere': {
-            const path = pr.obj.userData.path as THREE.CatmullRomCurve3
-            pr.obj.children.slice(1).forEach(d => {
-              const u = (d.userData.u + t / 9000) % 1
-              path.getPointAt(u, wq)
-              const tan = path.getTangentAt(u)
-              d.position.set(wq.x - tan.z * d.userData.off, 0.03, wq.z + tan.x * d.userData.off)
-              d.rotation.z = Math.atan2(tan.z, tan.x)
-            })
-            break
-          }
           case 'amie': {
             // la bande flotte en radeau autour de la mère, et se tient la patte
             const rig = pr.obj.userData.rig as OtterRig

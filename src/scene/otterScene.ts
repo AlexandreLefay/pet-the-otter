@@ -2,6 +2,7 @@
 // createOtterScene(el, { onPet }) → { dispose() }
 // Le conteneur doit avoir une taille ; le canvas le remplit et suit ses redimensionnements.
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
@@ -100,34 +101,38 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   scene.add(plateau)
   const slabMat = new THREE.MeshToonMaterial({ color: 0xd7d2c8, gradientMap: grad })
   const topMat = new THREE.MeshToonMaterial({ color: 0xf3f0ea, gradientMap: grad })
-  // Plateau rond : vu sous n'importe quel angle (on peut tourner la vue), il remplit l'écran
-  // et laisse voir sa tranche en bas, comme un grand disque de terre.
-  const SLAB_R = 11.5
-  const slabGeo = new THREE.CylinderGeometry(SLAB_R, SLAB_R * 0.985, 0.8, 96)
+  // Plateau carré, vu par un coin : son dessus remplit l'écran et le coin avant laisse voir
+  // ses deux tranches. La vue tourne par quarts de tour, pour toujours garder un coin face à nous.
+  const SLAB = 16.5
+  const slabGeo = new RoundedBoxGeometry(SLAB, 0.8, SLAB, 4, 0.3)
   const slab = new THREE.Mesh(slabGeo, slabMat)
   slab.position.y = -0.42
   slab.receiveShadow = true
   plateau.add(slab)
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(SLAB_R - 0.03, SLAB_R - 0.03, 0.06, 96), topMat)
+  const top = new THREE.Mesh(new RoundedBoxGeometry(SLAB - 0.04, 0.06, SLAB - 0.04, 4, 0.03), topMat)
   top.position.y = -0.03
   top.receiveShadow = true
   plateau.add(top)
-  // contour encre du disque
+  // contour encre de la dalle
   const slabInk = new THREE.Mesh(slabGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }))
   slabInk.position.copy(slab.position)
-  slabInk.scale.set(1.006, 1.05, 1.006)
+  slabInk.scale.set(1.005, 1.05, 1.005)
   plateau.add(slabInk)
-  // traits de terre tout autour de la tranche
-  for (let i = 0; i < 40; i++) {
-    const a = (i / 40) * Math.PI * 2 + (i % 3) * 0.05
+  // traits de terre sur les quatre tranches
+  for (let i = 0; i < 36; i++) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(0.5 + (i % 3) * 0.3, 0.02), new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.45 }))
-    m.position.set(Math.sin(a) * (SLAB_R + 0.01), -0.3 - (i % 3) * 0.15, Math.cos(a) * (SLAB_R + 0.01))
-    m.rotation.y = a
+    const along = -SLAB / 2 + 1 + ((i * 7.3) % (SLAB - 2))
+    const face = i % 4
+    const y = -0.3 - (i % 3) * 0.15
+    if (face === 0) m.position.set(along, y, SLAB / 2 + 0.01)
+    else if (face === 1) { m.position.set(SLAB / 2 + 0.01, y, along); m.rotation.y = Math.PI / 2 }
+    else if (face === 2) { m.position.set(along, y, -SLAB / 2 - 0.01); m.rotation.y = Math.PI }
+    else { m.position.set(-SLAB / 2 - 0.01, y, along); m.rotation.y = -Math.PI / 2 }
     plateau.add(m)
   }
   // capteur d'ombres posé sur le plateau (et sur l'eau) : des ombres franches, comme les
   // ombres dures de l'interface, quelle que soit la lumière ambiante
-  const shadowCatcher = new THREE.Mesh(new THREE.CircleGeometry(SLAB_R, 96), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
+  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(SLAB, SLAB), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
   shadowCatcher.rotation.x = -Math.PI / 2
   shadowCatcher.position.y = 0.03
   shadowCatcher.receiveShadow = true
@@ -232,9 +237,9 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     for (let k = 0; k < 40; k++) {
       const a = rAmb() * Math.PI * 2, r = rMin + rAmb() * (rMax - rMin)
       const x = Math.cos(a) * r, z = Math.sin(a) * r * 0.85
-      if (outsidePond(x, z, margin)) return [x, z]
+      if (outsidePond(x, z, margin) && Math.abs(x) < 7.6 && Math.abs(z) < 7.6) return [x, z]
     }
-    return [rMax, 0]
+    return [6.5, 0]
   }
   const cattailMat = toon(0x6f6a62), bushMat = toon(0xc4bfb5), flowerMat = toon(0xffffff)
   const bladeGeo = new THREE.CylinderGeometry(0.006, 0.018, 0.34, 4)
@@ -893,9 +898,9 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       }
       case 'cascade': {
         // le ruisseau suit le plateau jusqu'au bord avant-droit, puis tombe dans le vide
-        const ang = THREE.MathUtils.degToRad(75)
-        const ex = Math.sin(ang) * SLAB_R, ez = Math.cos(ang) * SLAB_R
-        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(2.4, 0, 0.5), new THREE.Vector3(5.2, 0, 1.0), new THREE.Vector3(8.2, 0, 2.0), new THREE.Vector3(ex + 0.2, 0, ez + 0.05)])
+        const ang = Math.PI / 2
+        const ex = SLAB / 2, ez = 4.6
+        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(2.4, 0, 0.6), new THREE.Vector3(4.8, 0, 1.8), new THREE.Vector3(6.9, 0, 3.6), new THREE.Vector3(ex + 0.2, 0, ez)])
         const pts = path.getPoints(40)
         const side = (sgn: number) => pts.map((q, k) => {
           const tan = path.getTangent(k / 40)
@@ -961,7 +966,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'riviere': {
         // un bras de rivière qui arrive par l'arrière et se jette dans la flaque
         const sh = new THREE.Shape()
-        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-9.3, 0, -6.6), new THREE.Vector3(-6.0, 0, -4.4), new THREE.Vector3(-3.4, 0, -2.5), new THREE.Vector3(-1.8, 0, -1.2)])
+        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-8.25, 0, -5.4), new THREE.Vector3(-6.0, 0, -4.2), new THREE.Vector3(-3.4, 0, -2.5), new THREE.Vector3(-1.8, 0, -1.2)])
         const pts = path.getPoints(40)
         const side = (sgn: number) => pts.map((q, k) => {
           const tan = path.getTangent(k / 40)
@@ -1104,7 +1109,14 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     pet(e, false)
     if (Math.random() < 0.35) ripple(false)
   }
-  const onUp = () => { dragging = false; turning = false }
+  const onUp = () => {
+    dragging = false
+    if (turning) {
+      // on se cale sur le coin le plus proche (45° + k × 90°)
+      yawTarget = Math.PI / 4 + Math.round((yaw - Math.PI / 4) / (Math.PI / 2)) * (Math.PI / 2)
+    }
+    turning = false
+  }
   const noMenu = (e: Event) => e.preventDefault()
   const onLeave = () => document.documentElement.removeAttribute(OTTER_HOVER_ATTR)
   el.addEventListener('pointerdown', onDown)
@@ -1379,8 +1391,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
 
   return {
     sync,
-    /** Fait tourner la vue d'un huitième de tour (dir = 1 ou -1). */
-    rotate(dir: number) { yawTarget += (dir * Math.PI) / 4 },
+    /** Fait tourner la vue d'un quart de tour (dir = 1 ou -1). */
+    rotate(dir: number) { yawTarget += (dir * Math.PI) / 2 },
     dispose() {
       cancelAnimationFrame(raf)
       clearInterval(boil)

@@ -2,6 +2,7 @@
 // createOtterScene(el, { onPet }) → { dispose() }
 // Le conteneur doit avoir une taille ; le canvas le remplit et suit ses redimensionnements.
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
 export interface OtterSceneOptions {
   /** appelé à chaque caresse, avec la position écran (clientX / clientY) */
@@ -24,16 +25,16 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true })
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.shadowMap.type = THREE.PCFShadowMap
   renderer.domElement.style.display = 'block'
   el.appendChild(renderer.domElement)
 
   const scene = new THREE.Scene()
-  const FR = 8.6
+  const FR = 11.8
   /** Taille de la mare : 1 au départ, grandit avec la famille (voir growthFor). */
   let G = 1
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200)
-  cam.position.set(12, 10.5, 12)
+  cam.position.set(14, 14, 14)
   cam.lookAt(0, 0, 0)
   const resize = () => {
     const W = el.clientWidth, H = el.clientHeight
@@ -41,8 +42,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     renderer.setSize(W, H)
     const as = W / H
     // Sur écran étroit (mobile) on élargit le cadrage pour garder toute la flaque.
-    // on recule un peu moins vite que la mare ne grandit : les loutres restent lisibles
-    const zoom = FR * (1 + (G - 1) * 0.85)
+    // la caméra recule au même rythme que le plateau grandit : il reste entier à l'écran
+    const zoom = FR * G
     const fr = as < 1 ? zoom * Math.min(1.9, 1.15 / as) : zoom
     cam.left = (-fr * as) / 2
     cam.right = (fr * as) / 2
@@ -71,16 +72,49 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   // ——— lumières + sol (ombre seule)
   scene.add(new THREE.AmbientLight(0xffffff, 1.15))
   const sun = new THREE.DirectionalLight(0xffffff, 1.9)
-  sun.position.set(-4, 12, 6)
+  sun.position.set(-8, 13, -1)
   sun.castShadow = true
   sun.shadow.mapSize.set(2048, 2048)
   Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 })
   sun.shadow.bias = -0.0005
   scene.add(sun)
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShadowMaterial({ color: INK, opacity: 0.1 }))
-  ground.rotation.x = -Math.PI / 2
-  ground.receiveShadow = true
-  scene.add(ground)
+  // ——— le plateau : une dalle de terre en relief sous la mare, vue en isométrie
+  // (dessus clair, tranche plus sombre, contour à l'encre) ; elle grandit avec la mare.
+  const plateau = new THREE.Group()
+  scene.add(plateau)
+  const slabMat = new THREE.MeshToonMaterial({ color: 0xd7d2c8, gradientMap: grad })
+  const topMat = new THREE.MeshToonMaterial({ color: 0xf3f0ea, gradientMap: grad })
+  const slabGeo = new RoundedBoxGeometry(10.4, 0.8, 8.6, 4, 0.28)
+  const slab = new THREE.Mesh(slabGeo, slabMat)
+  slab.position.y = -0.42
+  slab.receiveShadow = true
+  plateau.add(slab)
+  const top = new THREE.Mesh(new RoundedBoxGeometry(10.36, 0.06, 8.56, 4, 0.03), topMat)
+  top.position.y = -0.03
+  top.receiveShadow = true
+  plateau.add(top)
+  // contour encre de la dalle
+  const slabInk = new THREE.Mesh(slabGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }))
+  slabInk.position.copy(slab.position)
+  slabInk.scale.set(1.006, 1.05, 1.008)
+  plateau.add(slabInk)
+  // quelques traits de terre sur la tranche
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.4 + (i % 3) * 0.2, 0.018), new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.45 }))
+    const onX = Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) * 1.2
+    if (onX) { m.position.set(Math.sign(Math.cos(a)) * 5.21, -0.35 - (i % 3) * 0.13, Math.sin(a) * 3.2); m.rotation.y = Math.PI / 2 }
+    else { m.position.set(Math.cos(a) * 4.0, -0.35 - (i % 3) * 0.13, Math.sign(Math.sin(a)) * 4.31) }
+    plateau.add(m)
+  }
+  // capteur d'ombres posé sur le plateau (et sur l'eau) : des ombres franches, comme les
+  // ombres dures de l'interface, quelle que soit la lumière ambiante
+  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(10.4, 8.6), new THREE.ShadowMaterial({ color: INK, opacity: 0.28 }))
+  shadowCatcher.rotation.x = -Math.PI / 2
+  shadowCatcher.position.y = 0.03
+  shadowCatcher.receiveShadow = true
+  shadowCatcher.renderOrder = 3
+  plateau.add(shadowCatcher)
 
   // ——— flaque (écrit dans le stencil → les ondes y sont masquées)
   const blob = (R: number, sx: number, sz: number, ph: number, n = 72) => {
@@ -694,7 +728,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
       case 'riviere': {
         // un bras de rivière qui arrive par l'arrière et se jette dans la flaque
         const sh = new THREE.Shape()
-        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-11, 0, -7), new THREE.Vector3(-6.5, 0, -4.4), new THREE.Vector3(-3.6, 0, -2.6), new THREE.Vector3(-1.8, 0, -1.2)])
+        const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-5.15, 0, -3.95), new THREE.Vector3(-4.2, 0, -3.2), new THREE.Vector3(-3.1, 0, -2.3), new THREE.Vector3(-1.8, 0, -1.2)])
         const pts = path.getPoints(40)
         const side = (sgn: number) => pts.map((q, k) => {
           const tan = path.getTangent(k / 40)
@@ -758,6 +792,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   const applyGrowth = () => {
     spread.forEach(({ o, x, z }) => o.position.set(x * G, o.position.y, z * G))
     pools.forEach(m => m.scale.set(G, G, 1))
+    plateau.scale.set(G, 1, G)
     river?.scale.set(G, 1, G)
     const sh = 9 * G
     Object.assign(sun.shadow.camera, { left: -sh, right: sh, top: sh, bottom: -sh })
@@ -830,7 +865,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   window.addEventListener('pointercancel', onUp)
 
   // ——— boucle
-  const camDir = new THREE.Vector3(12, 10.5, 12).normalize().add(new THREE.Vector3(0, 0.35, 0)).normalize()
+  const camDir = new THREE.Vector3(1, 1, 1).normalize().add(new THREE.Vector3(0, 0.3, 0)).normalize()
   const gUp = new THREE.Vector3(), gFwd = new THREE.Vector3(), gq = new THREE.Quaternion(), gp = new THREE.Vector3()
   /** Oriente une tête : face à nous, légèrement inclinée vers le ciel et vers l'avant. */
   const gaze = (h: THREE.Object3D) => {

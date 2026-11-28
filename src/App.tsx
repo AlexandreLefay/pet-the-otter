@@ -6,6 +6,7 @@ import { HandCursor } from './components/HandCursor'
 import { Counter, Gains, Hint, Logo, Mood, SoundToggle, Toast } from './components/Hud'
 import { Achievements, Notebook, Shop, Stats, Story, Tabs, type TabId } from './components/Panels'
 import { Quiz } from './components/Quiz'
+import { Blackjack } from './components/Blackjack'
 import { BlessingChooser, Ending, TidePanel } from './components/Tide'
 import { DebugMenu } from './components/DebugMenu'
 import { SaveMenu } from './components/SaveMenu'
@@ -46,6 +47,7 @@ export default function App() {
         <SaveMenu />
       </div>
       <Quiz />
+      <Blackjack />
       <Toast />
       <Gains />
       <BlessingChooser />

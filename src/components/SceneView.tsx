@@ -9,11 +9,19 @@ export function SceneView() {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const s = createOtterScene(el, { onPet: (x, y) => useGame.getState().pet(x, y), onReady: hideBoot })
+    const s = createOtterScene(el, {
+      onPet: (x, y) => useGame.getState().pet(x, y),
+      onReady: hideBoot,
+      // clic sur la table de blackjack : on s'assoit (la scène zoome, la partie s'ouvre)
+      onTable: () => useGame.setState({ atTable: true }),
+    })
     scene.current = s
     // la scène affiche ce qui a été acheté
     s.sync(useGame.getState().owned)
-    const unsub = useGame.subscribe((st, prev) => { if (st.owned !== prev.owned) s.sync(st.owned) })
+    const unsub = useGame.subscribe((st, prev) => {
+      if (st.owned !== prev.owned) s.sync(st.owned)
+      if (st.atTable !== prev.atTable) s.setTable(st.atTable)
+    })
     // Q / E (ou A / E sur clavier AZERTY) : tourner la vue
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement

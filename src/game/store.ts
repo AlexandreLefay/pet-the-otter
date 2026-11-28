@@ -88,6 +88,8 @@ interface GameState extends SavedState {
   closeEnding: () => void
   /** l'écran de fin est affiché */
   ending: boolean
+  /** assis à la table de blackjack (non sauvegardé) */
+  atTable: boolean
   /** quiz vrai / faux en cours (non sauvegardé) */
   quiz: { id: string; until: number } | null
   /** ajoute un fait au carnet et l'affiche (« Le saviez-vous ? ») */
@@ -222,6 +224,7 @@ export const useGame = create<GameState>((set, get) => ({
   gains: [],
   petTick: 0,
   ending: false,
+  atTable: false,
   quiz: null,
 
   pet: (x, y) => {

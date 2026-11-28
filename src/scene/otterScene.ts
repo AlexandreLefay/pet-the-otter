@@ -9,6 +9,8 @@ export interface OtterSceneOptions {
   onPet?: (x: number, y: number) => void
   /** appelé une fois, après la première image dessinée */
   onReady?: () => void
+  /** clic sur la table de blackjack */
+  onTable?: () => void
 }
 
 type V3 = [number, number, number]
@@ -19,7 +21,7 @@ const INK = 0x1b1a18
 export const OTTER_HOVER_ATTR = 'data-otter-hover'
 const PET_THROTTLE_MS = 140
 
-export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterSceneOptions = {}) {
+export function createOtterScene(el: HTMLElement, { onPet, onReady, onTable }: OtterSceneOptions = {}) {
   let raf = 0
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true })
@@ -43,9 +45,13 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   let yaw = Math.PI / 4, yawTarget = yaw
   const camDir = new THREE.Vector3()
   const camEye = new THREE.Vector3()
+  // zoom sur la table de blackjack : 0 = vue du plateau, 1 = cadré sur la table
+  let focusK = 0, focusTarget = 0
+  const focusPt = new THREE.Vector3()
   const aimCam = () => {
     camEye.set(Math.cos(ELEVATION) * Math.sin(yaw), Math.sin(ELEVATION), Math.cos(ELEVATION) * Math.cos(yaw))
-    const tx = Math.sin(yaw) * AIM * G, tz = Math.cos(yaw) * AIM * G
+    const e = focusK * focusK * (3 - 2 * focusK)
+    const tx = Math.sin(yaw) * AIM * G * (1 - e) + focusPt.x * e, tz = Math.cos(yaw) * AIM * G * (1 - e) + focusPt.z * e
     cam.position.set(tx + camEye.x * 30, camEye.y * 30, tz + camEye.z * 30)
     cam.lookAt(tx, 0, tz)
     // direction vers laquelle les têtes se tournent (un peu au-dessus de la caméra)
@@ -59,7 +65,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     const as = W / H
     // Sur écran étroit (mobile) on élargit le cadrage pour garder toute la flaque.
     // la caméra recule au même rythme que le plateau grandit : il reste entier à l'écran
-    const zoom = FR * G
+    const e = focusK * focusK * (3 - 2 * focusK)
+    const zoom = FR * G * (1 - e) + 4.6 * e
     aimCam()
     const fr = as < 1 ? zoom * Math.min(1.9, 1.15 / as) : zoom
     cam.left = (-fr * as) / 2
@@ -582,7 +589,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   type Prop = { obj: THREE.Object3D; born: number; y0: number; splash: boolean; water: boolean; i: number }
   const props: Record<string, Prop[]> = {}
   let clock = 0 // ms, mis à jour par la boucle
-  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, avion: 1, phare: 1, jumeau: 1, grandmere: 1, sainte: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
+  const CAP: Record<string, number> = { rocher: 12, nenuphar: 12, galet: 3, amie: 24, plume: 1, riviere: 1, noeud: 1, lunettes: 1, cousin: 1, echarpe: 1, couronne: 1, collier: 1, bateau: 6, parasol: 6, cascade: 1, avion: 1, blackjack: 1, phare: 1, jumeau: 1, grandmere: 1, sainte: 1, berceuse: 1, cape: 1, monocle: 1, moulin: 1, arcenciel: 1, voisins: 1 }
 
   // ——— la bande : la première amie tient la patte de la mère ; les autres forment de petits
   // groupes (2 à 4) qui dérivent chacun à leur rythme autour d'elle, sans ordre précis
@@ -928,6 +935,61 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         spreadAdd(g)
         return { obj: g, parent: scene, water: false }
       }
+      case 'blackjack': {
+        // une table de blackjack en demi-lune, un croupier loutre derrière, un tabouret devant
+        const felt = tone(0x9a958d), wood = tone(0x5f5b55), card = tone(0xffffff)
+        const table = new THREE.Group()
+        g.add(table)
+        add(new THREE.CylinderGeometry(1.2, 1.2, 0.12, 40, 1, false, -Math.PI / 2, Math.PI), wood, table, [0, 0.78, 0])
+        add(new THREE.CylinderGeometry(1.08, 1.08, 0.06, 40, 1, false, -Math.PI / 2, Math.PI), felt, table, [0, 0.86, 0.02])
+        // l'arc des places, tracé à l'encre sur le tapis
+        const arcLine = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.012, 4, 40, Math.PI), black)
+        arcLine.rotation.set(Math.PI / 2, 0, Math.PI)
+        arcLine.position.y = 0.895
+        table.add(arcLine)
+        ;[-0.7, 0.7].forEach(x => add(new THREE.CylinderGeometry(0.06, 0.08, 0.78, 8), wood, table, [x, 0.39, 0.25]))
+        add(new THREE.CylinderGeometry(0.06, 0.08, 0.78, 8), wood, table, [0, 0.39, 0.85])
+        // jetons et sabot de cartes
+        ;[[-0.5, 0.15], [-0.36, 0.22], [0.52, 0.2]].forEach(([x, z], k) => {
+          for (let h = 0; h < 3 + k; h++) add(new THREE.CylinderGeometry(0.07, 0.07, 0.025, 14), k % 2 ? card : tone(0x3a3935), table, [x, 0.91 + h * 0.028, z], null, null, h === 0)
+        })
+        add(new THREE.BoxGeometry(0.22, 0.12, 0.3), wood, table, [0.6, 0.95, -0.1])
+        ;[[-0.08, 0.5, 0.2], [0.1, 0.52, -0.15]].forEach(([x, z, r]) => add(new THREE.BoxGeometry(0.16, 0.01, 0.22), card, table, [x, 0.9, z], [0, r, 0]))
+        // le tabouret du joueur
+        add(new THREE.CylinderGeometry(0.28, 0.28, 0.08, 18), wood, table, [0, 0.52, 1.55])
+        add(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), black, table, [0, 0.25, 1.55], null, null, false)
+        // le croupier : une loutre assise derrière la table, nœud papillon noir et visière
+        const seat = (seed: number, look: Look) => {
+          const holder = new THREE.Group()
+          const o = makeOtter(seed, look, true)
+          o.root.rotation.z = Math.PI / 2 // debout : la tête en haut, le ventre vers l'avant
+          o.root.position.y = 1.05
+          holder.add(o.root)
+          holder.scale.setScalar(0.55)
+          return { holder, rig: o }
+        }
+        const dealer = seat(500, { ...lookFor(500), eyes: 'open', extra: 'none' })
+        dealer.holder.position.set(0, 0.25, -0.55)
+        dealer.holder.rotation.y = -Math.PI / 2 // le ventre (−x) vers +z, face au joueur
+        table.add(dealer.holder)
+        ;[-1, 1].forEach(sd => add(new THREE.ConeGeometry(0.06, 0.11, 10), bowMat, dealer.rig.head, [sd * 0.06, -0.3, 0.12], [0, 0, sd * Math.PI / 2]))
+        const visor = add(new THREE.CylinderGeometry(0.3, 0.3, 0.02, 20, 1, false, -Math.PI / 2, Math.PI), tone(0xe6e2d9), dealer.rig.head, [0, 0.28, 0.08])
+        visor.rotation.x = 0.35
+        // la joueuse : la mère (même apparence), qui arrive de la mare quand on s'assoit
+        const player = seat(7, MOM_LOOK)
+        player.holder.rotation.y = Math.PI / 2 // face au croupier
+        player.holder.visible = false
+        table.add(player.holder)
+        table.rotation.y = Math.PI / 4
+        g.position.set(5.0, 0, -0.3)
+        g.scale.setScalar(1.15)
+        spreadAdd(g)
+        g.userData.table = table
+        g.userData.dealer = dealer.rig
+        g.userData.player = player
+        tableObj = g
+        return { obj: g, parent: scene, water: false }
+      }
       case 'avion': {
         // la loutre aviatrice : un biplan des années 1950 qui tourne au-dessus du plateau,
         // en tirant une banderole « I ♥ OTTER »
@@ -1148,6 +1210,8 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     resize()
   }
 
+  let tableObj: THREE.Object3D | null = null
+  let atTable = false, leaving = false, seatStart = 0
   const syncProps = (owned: Record<string, number>, animate: boolean) => {
     gTarget = growthFor(owned)
     if (!animate) { G = gTarget; applyGrowth() }
@@ -1165,6 +1229,7 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
         const pr = list.pop()!
         pr.obj.removeFromParent()
         ;(pr.obj.userData.link as THREE.Object3D | undefined)?.removeFromParent()
+        if (pr.obj === tableObj) tableObj = null
       }
     }
   }
@@ -1193,7 +1258,15 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
   }
   // clic droit (ou molette) glissé : on fait tourner le plateau
   let turning = false, turnX = 0
+  const hitsTable = (e: PointerEvent) => {
+    if (!tableObj || !onTable) return false
+    const r = renderer.domElement.getBoundingClientRect()
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+    raycaster.setFromCamera(ndc, cam)
+    return raycaster.intersectObject(tableObj, true).length > 0
+  }
   const onDown = (e: PointerEvent) => {
+    if (e.button === 0 && !atTable && hitsTable(e)) { onTable?.(); return }
     if (e.button === 1 || e.button === 2) {
       turning = true
       turnX = e.clientX
@@ -1324,6 +1397,23 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
           case 'cape': {
             const cloth = pr.obj.userData.cloth as THREE.Mesh
             cloth.scale.set(1 + Math.sin(t / 900) * 0.03, 1 + Math.sin(t / 650) * 0.06, 1)
+            break
+          }
+          case 'blackjack': {
+            const dealer = pr.obj.userData.dealer as OtterRig
+            const player = pr.obj.userData.player as { holder: THREE.Object3D; rig: OtterRig }
+            dealer.root.position.y = 1.05 + Math.sin(t / 900) * 0.02
+            pr.obj.updateMatrixWorld(true)
+            gaze(dealer.head)
+            // la joueuse vient s'asseoir : elle part du bord de la mare, saute jusqu'au tabouret
+            const seatT = Math.min(1, Math.max(0, (t - seatStart) / 1400))
+            player.holder.visible = atTable || seatT < 1 && seatStart > 0 && !leaving
+            if (atTable) {
+              const from = new THREE.Vector3(0, 0, 4.2), to = new THREE.Vector3(0, 0.3, 1.55)
+              const p = from.lerp(to, seatT)
+              player.holder.position.set(p.x, p.y + Math.abs(Math.sin(seatT * Math.PI * 3)) * 0.35 * (1 - seatT), p.z)
+              gaze(player.rig.head)
+            }
             break
           }
           case 'avion': {
@@ -1503,6 +1593,11 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
     favPebble.visible = !props.galet?.length
     clock = t
     reeds.forEach(r => { r.rotation.z = Math.sin(t / 1300 + r.userData.sway * 1.7) * 0.05 })
+    if (Math.abs(focusTarget - focusK) > 0.001) {
+      focusK += (focusTarget - focusK) * Math.min(1, dt * 3.2)
+      if (Math.abs(focusTarget - focusK) < 0.002) focusK = focusTarget
+      resize()
+    }
     if (Math.abs(yawTarget - yaw) > 0.0005) {
       yaw += (yawTarget - yaw) * Math.min(1, dt * 7)
       aimCam()
@@ -1534,6 +1629,20 @@ export function createOtterScene(el: HTMLElement, { onPet, onReady }: OtterScene
 
   return {
     sync,
+    /** S'asseoir à la table de blackjack (zoom, la loutre arrive) ou la quitter. */
+    setTable(on: boolean) {
+      if (on === atTable || !tableObj) return
+      atTable = on
+      leaving = !on
+      focusTarget = on ? 1 : 0
+      if (on) {
+        // la table se cadre dans le haut de l'écran : le panneau de jeu occupe le bas
+        tableObj.getWorldPosition(focusPt)
+        focusPt.x += Math.sin(yaw) * 1.05
+        focusPt.z += Math.cos(yaw) * 1.05
+        seatStart = performance.now()
+      }
+    },
     /** Fait tourner la vue d'un quart de tour (dir = 1 ou -1). */
     rotate(dir: number) { yawTarget += (dir * Math.PI) / 2 },
     dispose() {

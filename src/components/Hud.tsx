@@ -82,8 +82,10 @@ export function Gains() {
   return (
     <>
       {gains.map(g => (
-        <div key={g.id} className="gain" style={{ left: g.x, top: g.y - 20, ['--r' as string]: `${g.rot}deg` }}>
-          {g.text}
+        // affiché bien au-dessus du point de clic, pour ne pas se perdre dans les loutres
+        <div key={g.id} className={'gain' + (g.text.endsWith('!') ? ' gain--crit' : '')} style={{ left: g.x, top: g.y - 64, ['--r' as string]: `${g.rot}deg` }}>
+          {g.text !== 'plein' && <GaletIcon size={22} />}
+          <span>{g.text}</span>
         </div>
       ))}
     </>

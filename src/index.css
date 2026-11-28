@@ -117,11 +117,14 @@ button { font: inherit; color: inherit; }
 }
 
 /* ——— Gain flottant */
-.gain { position: fixed; pointer-events: none; font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--galet-text); animation: float-up 900ms ease-out forwards; }
+.gain { position: fixed; z-index: 40; pointer-events: none; display: flex; align-items: center; gap: 4px; font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--galet-text); text-shadow: 2px 2px 0 var(--paper), -1px -1px 0 var(--paper), 1px -1px 0 var(--paper), -1px 1px 0 var(--paper), 3px 3px 0 var(--ink); filter: var(--boil); white-space: nowrap; animation: float-up 1150ms cubic-bezier(.2,.7,.3,1) forwards; }
+.gain--crit { font-size: 34px; }
+.gain svg { flex: none; }
 @keyframes float-up {
-  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--r)); }
-  15% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, calc(-50% - 70px)) rotate(var(--r)); }
+  0% { opacity: 0; transform: translate(-50%, -30%) rotate(var(--r)) scale(0.7); }
+  12% { opacity: 1; transform: translate(-50%, -60%) rotate(var(--r)) scale(1.08); }
+  25% { transform: translate(-50%, -75%) rotate(var(--r)) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% - 120px)) rotate(var(--r)) scale(0.95); }
 }
 
 /* ——— Curseur main dessinée (souris uniquement, cf. components/HandCursor.tsx) */
@@ -130,11 +133,11 @@ button { font: inherit; color: inherit; }
 .hand-cursor.is-visible { opacity: 1; }
 .hand-cursor svg { display: block; overflow: visible; }
 /* pivot = bout de l'index (13, 2) : le point de clic ne bouge jamais */
-.hand-cursor__hand { transform-box: view-box; transform-origin: 13px 2px; transform: rotate(-14deg); transition: transform 90ms ease-out; }
-.is-down .hand-cursor__hand { transform: rotate(-14deg) scale(0.86); }
+.hand-cursor__hand { transform-box: view-box; transform-origin: 22px 30px; transform: rotate(-12deg); transition: transform 90ms ease-out; }
+.is-down .hand-cursor__hand { transform: rotate(-12deg) scale(0.84); }
 .is-petting .hand-cursor__hand { animation: hand-pet 640ms ease-in-out infinite; }
 .is-petting.is-down .hand-cursor__hand { animation-duration: 240ms; }
-@keyframes hand-pet { 0%, 100% { transform: rotate(-21deg); } 50% { transform: rotate(-6deg); } }
+@keyframes hand-pet { 0%, 100% { transform: rotate(-20deg) translateX(-3px); } 50% { transform: rotate(-2deg) translateX(3px); } }
 
 /* ——— Marée (prestige) */
 .panel--tide { gap: 18px; }

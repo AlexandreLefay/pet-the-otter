@@ -2,15 +2,15 @@ import { useEffect, useRef } from 'react'
 import { OTTER_HOVER_ATTR } from '../scene/otterScene'
 import { useGame } from '../game/store'
 
-// Bout de l'index dans le viewBox du dessin : c'est le point de clic (1 unité = 1 px).
-const TIP_X = 13
-const TIP_Y = 2
+// Centre du coussin de la paume dans le viewBox du dessin : c'est le point de clic (1 unité = 1 px).
+const TIP_X = 22
+const TIP_Y = 30
 
 /**
- * Curseur « main » dessinée à l'encre, dans le style des icônes du jeu (trait 2,2 px,
+ * Curseur « patte de loutre » dessinée à l'encre, dans le style des icônes du jeu (trait 2,2 px,
  * aplat blanc, filtre « boil »). Souris uniquement : sur écran tactile rien ne change.
  * La main est déplacée directement dans pointermove (pas de retard) et toutes ses
- * animations tournent autour du bout de l'index, qui reste donc sous le point de clic.
+ * animations tournent autour du coussin de la paume, qui reste donc sous le point de clic.
  */
 export function HandCursor() {
   const ref = useRef<HTMLDivElement>(null)
@@ -62,16 +62,34 @@ export function HandCursor() {
 
   return (
     <div ref={ref} className="hand-cursor" aria-hidden>
-      <svg viewBox="0 0 40 46" width={40} height={46}>
+      <svg viewBox="0 0 44 52" width={44} height={52}>
         <g className="hand-cursor__hand">
           {/* ombre dure décalée, comme les cartes de l'interface */}
-          <path d={HAND} transform="translate(2.5 2.5)" fill="#1b1a18" opacity={0.14} />
+          <path d={PAW} transform="translate(2.5 2.5)" fill="#1b1a18" opacity={0.14} />
           <g style={{ filter: 'var(--boil)' }} stroke="#1b1a18" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <path d={CUFF} fill="#f4f2ee" />
-            <path d={HAND} fill={mitten ? '#e4e0d8' : '#fff'} />
+            {/* le bras, fourrure grise, qui arrive par le bas */}
+            <path d={ARM} fill="#99948c" />
+            <path d="M17 47 l-1 3 M22 46.5 l0 3.2 M27 47 l1 3" fill="none" strokeWidth={1.2} />
+            {/* la patte : une moufle duveteuse */}
+            <path d={PAW} fill={mitten ? '#dcd7cd' : '#f6f2ea'} />
             {mitten && <path d={KNIT} fill="none" strokeWidth={1.1} />}
-            {/* plis des doigts repliés, ongle, liseré de manchette */}
-            <path d="M17 15.5 C17.2 17.3 17.6 18.3 18.3 19 M23 16.5 C23.2 18 23.5 19 24 19.6 M28.4 18 C28.5 19.4 28.8 20.3 29.2 21 M11.3 6.2 q1.7 -1.6 3.4 0 M14 38.6 L27.5 38.6" fill="none" strokeWidth={1.4} />
+            {/* touffes de fourrure sur le pourtour */}
+            <path d="M7.2 22 l-2.6 -1.6 M6.8 27.5 l-2.8 0.4 M36.8 22 l2.6 -1.6 M37.2 27.5 l2.8 0.4 M15 9.6 l-1.2 -2.4 M29 9.6 l1.2 -2.4" fill="none" strokeWidth={1.3} />
+            {/* coussinets : quatre doigts et la paume, à l'encre */}
+            <g fill="#1b1a18" strokeWidth={1}>
+              <ellipse cx={13.6} cy={18.8} rx={2.2} ry={2.7} transform="rotate(-24 13.6 18.8)" />
+              <ellipse cx={19.1} cy={15.2} rx={2.3} ry={2.8} transform="rotate(-8 19.1 15.2)" />
+              <ellipse cx={24.9} cy={15.2} rx={2.3} ry={2.8} transform="rotate(8 24.9 15.2)" />
+              <ellipse cx={30.4} cy={18.8} rx={2.2} ry={2.7} transform="rotate(24 30.4 18.8)" />
+              {/* coussin de la paume, en trois lobes */}
+              <path d="M14.6 31.4 C14.2 27.8 17.8 25.6 22 25.6 C26.2 25.6 29.8 27.8 29.4 31.4 C29.1 33.8 27.4 34.6 25.6 34 C24 33.4 23 34.4 22 34.4 C21 34.4 20 33.4 18.4 34 C16.6 34.6 14.9 33.8 14.6 31.4 Z" />
+            </g>
+            {/* petits reflets sur les coussinets */}
+            <g fill="#fff" stroke="none">
+              <circle cx={18.4} cy={14} r={0.6} />
+              <circle cx={24.2} cy={14} r={0.6} />
+              <circle cx={19.4} cy={28} r={0.8} />
+            </g>
           </g>
         </g>
       </svg>
@@ -79,14 +97,11 @@ export function HandCursor() {
   )
 }
 
-// Main droite vue de dos, index levé ; le bout de l'index est en (13, 2).
-const HAND =
-  'M9 22 L9 6 C9 3.4 10.8 2 13 2 C15.2 2 17 3.4 17 6 L17 15.5 ' +
-  'C17.4 13.6 19.2 12.8 21 13.2 C22.4 13.5 23 14.8 23 16.5 ' +
-  'C23.4 14.9 25 14.4 26.5 14.9 C27.9 15.4 28.4 16.6 28.4 18 ' +
-  'C28.9 16.9 30.4 16.7 31.5 17.4 C32.9 18.3 33.1 20.1 32.6 22.4 ' +
-  'C32 27.2 30.9 31 28.2 34.2 L13.2 34.2 ' +
-  'C10.4 31.4 6.6 27.6 4.8 24.4 C3.8 22.3 4.6 20.1 6.6 20 C7.8 19.9 8.6 20.7 9 22 Z'
-const CUFF = 'M12.4 34 L28.9 34 L29.3 42.4 L12 42.4 Z'
-// mailles du tricot (petits « v ») sur le dos de la moufle
-const KNIT = 'M19 22 l1.2 1.4 l1.2 -1.4 M23.5 22.5 l1.2 1.4 l1.2 -1.4 M16 26.5 l1.2 1.4 l1.2 -1.4 M21 27 l1.2 1.4 l1.2 -1.4 M26 26.5 l1.2 1.4 l1.2 -1.4'
+// Patte de loutre vue de dessous (coussinets visibles), doigts vers le haut.
+// Le point de clic est le centre du coussin de la paume, pivot de toutes les animations.
+const PAW =
+  'M8 25 C6.6 16 12.6 7.4 22 7.4 C31.4 7.4 37.4 16 36 25 ' +
+  'C35.2 31.6 32.6 37.6 28.4 40.4 C25 42.6 19 42.6 15.6 40.4 C11.4 37.6 8.8 31.6 8 25 Z'
+const ARM = 'M14.6 38.6 C14 43 13.6 47 13.8 52 L30.2 52 C30.4 47 30 43 29.4 38.6 Z'
+// mailles du tricot (petits « v ») sur la moufle
+const KNIT = 'M11 30 l1.2 1.4 l1.2 -1.4 M31 30 l1.2 1.4 l1.2 -1.4 M15.5 37 l1.2 1.4 l1.2 -1.4 M26 37 l1.2 1.4 l1.2 -1.4 M20.8 39.5 l1.2 1.4 l1.2 -1.4'
